@@ -391,7 +391,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         )}>
           {/* Background with watermark effect */}
           <div 
-            className="fixed inset-0 z-0 opacity-[0.03] pointer-events-none"
+            className="fixed inset-0 z-0 opacity-[0.15] pointer-events-none"
             style={{ 
               backgroundImage: 'url("/src/assets/images/fondo.png")',
               backgroundSize: 'cover',
