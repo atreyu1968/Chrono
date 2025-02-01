@@ -16,29 +16,48 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-const authSchema = z.object({
-  username: z.string().min(3),
-  password: z.string().min(6),
+const registerSchema = z.object({
+  username: z.string().min(3, "El usuario debe tener al menos 3 caracteres"),
+  password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
+  fullName: z.string().min(1, "El nombre completo es requerido"),
+});
+
+const loginSchema = z.object({
+  username: z.string().min(3, "El usuario debe tener al menos 3 caracteres"),
+  password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
 });
 
 export default function AuthPage() {
   const { loginMutation, registerMutation } = useAuth();
   const [, setLocation] = useLocation();
 
-  const form = useForm<z.infer<typeof authSchema>>({
-    resolver: zodResolver(authSchema),
+  const loginForm = useForm<z.infer<typeof loginSchema>>({
+    resolver: zodResolver(loginSchema),
     defaultValues: {
       username: "",
       password: "",
     },
   });
 
-  const onSubmit = async (values: z.infer<typeof authSchema>) => {
-    const mutation = form.getValues("action") === "login" 
-      ? loginMutation 
-      : registerMutation;
+  const registerForm = useForm<z.infer<typeof registerSchema>>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      username: "",
+      password: "",
+      fullName: "",
+    },
+  });
 
-    await mutation.mutateAsync(values);
+  const onLogin = async (values: z.infer<typeof loginSchema>) => {
+    await loginMutation.mutateAsync(values);
+    setLocation("/");
+  };
+
+  const onRegister = async (values: z.infer<typeof registerSchema>) => {
+    await registerMutation.mutateAsync({
+      ...values,
+      role: "employee", // Por defecto, los nuevos usuarios son empleados
+    });
     setLocation("/");
   };
 
@@ -49,77 +68,88 @@ export default function AuthPage() {
           <CardContent className="pt-6">
             <Tabs defaultValue="login" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="login">Login</TabsTrigger>
-                <TabsTrigger value="register">Register</TabsTrigger>
+                <TabsTrigger value="login">Iniciar Sesión</TabsTrigger>
+                <TabsTrigger value="register">Registrarse</TabsTrigger>
               </TabsList>
               <TabsContent value="login">
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                    <input type="hidden" {...form.register("action")} value="login" />
+                <Form {...loginForm}>
+                  <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
                     <FormField
-                      control={form.control}
+                      control={loginForm.control}
                       name="username"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Username</FormLabel>
+                          <FormLabel>Usuario</FormLabel>
                           <FormControl>
-                            <Input {...field} />
+                            <Input {...field} placeholder="Ingrese su usuario" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                     <FormField
-                      control={form.control}
+                      control={loginForm.control}
                       name="password"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Password</FormLabel>
+                          <FormLabel>Contraseña</FormLabel>
                           <FormControl>
-                            <Input type="password" {...field} />
+                            <Input type="password" {...field} placeholder="Ingrese su contraseña" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                     <Button type="submit" className="w-full">
-                      Login
+                      {loginMutation.isPending ? "Iniciando sesión..." : "Iniciar Sesión"}
                     </Button>
                   </form>
                 </Form>
               </TabsContent>
               <TabsContent value="register">
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                    <input type="hidden" {...form.register("action")} value="register" />
+                <Form {...registerForm}>
+                  <form onSubmit={registerForm.handleSubmit(onRegister)} className="space-y-4">
                     <FormField
-                      control={form.control}
-                      name="username"
+                      control={registerForm.control}
+                      name="fullName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Username</FormLabel>
+                          <FormLabel>Nombre Completo</FormLabel>
                           <FormControl>
-                            <Input {...field} />
+                            <Input {...field} placeholder="Ingrese su nombre completo" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                     <FormField
-                      control={form.control}
+                      control={registerForm.control}
+                      name="username"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Usuario</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="Elija un nombre de usuario" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={registerForm.control}
                       name="password"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Password</FormLabel>
+                          <FormLabel>Contraseña</FormLabel>
                           <FormControl>
-                            <Input type="password" {...field} />
+                            <Input type="password" {...field} placeholder="Elija una contraseña" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                     <Button type="submit" className="w-full">
-                      Register
+                      {registerMutation.isPending ? "Registrando..." : "Registrarse"}
                     </Button>
                   </form>
                 </Form>
@@ -139,10 +169,10 @@ export default function AuthPage() {
         <div className="flex items-center justify-center h-full text-white p-12">
           <div>
             <h1 className="text-4xl font-bold mb-4">
-              Welcome to AttendanceSystem
+              Bienvenido al Sistema de Control de Asistencia
             </h1>
             <p className="text-lg opacity-90">
-              Manage your workplace attendance efficiently with our modern check-in system.
+              Gestiona la asistencia de tu lugar de trabajo de manera eficiente con nuestro moderno sistema de fichaje.
             </p>
           </div>
         </div>

@@ -14,4 +14,6 @@ export function setupWebSocket(server: Server) {
       });
     });
   });
+
+  return wss;
 }

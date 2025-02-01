@@ -16,9 +16,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const menuItems = [
-    { icon: LayoutDashboard, label: "Dashboard", href: "/admin" },
-    { icon: MapPin, label: "Locations", href: "/admin/locations" },
-    { icon: Users, label: "Users", href: "/admin/users" },
+    { icon: LayoutDashboard, label: "Panel", href: "/admin" },
+    { icon: MapPin, label: "Ubicaciones", href: "/admin/locations" },
+    { icon: Users, label: "Usuarios", href: "/admin/users" },
   ];
 
   const SidebarContent = () => (
@@ -40,7 +40,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         onClick={() => logoutMutation.mutate()}
       >
         <LogOut className="h-5 w-5" />
-        Logout
+        Cerrar Sesión
       </Button>
     </div>
   );

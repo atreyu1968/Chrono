@@ -19,11 +19,11 @@ export default function AdminDashboard() {
   return (
     <AdminLayout>
       <div className="p-6">
-        <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
+        <h1 className="text-3xl font-bold mb-6">Panel de Control</h1>
         <div className="grid gap-4 md:grid-cols-3">
           <Card>
             <CardHeader>
-              <CardTitle>Total Check-ins Today</CardTitle>
+              <CardTitle>Fichajes Hoy</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-4xl font-bold">{attendanceStats?.today || 0}</p>
@@ -31,7 +31,7 @@ export default function AdminDashboard() {
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle>On Time</CardTitle>
+              <CardTitle>A Tiempo</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-4xl font-bold text-green-600">
@@ -41,7 +41,7 @@ export default function AdminDashboard() {
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle>Late</CardTitle>
+              <CardTitle>Tardanzas</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-4xl font-bold text-red-600">
@@ -53,7 +53,7 @@ export default function AdminDashboard() {
 
         <Card className="mt-6">
           <CardHeader>
-            <CardTitle>Attendance Trend</CardTitle>
+            <CardTitle>Tendencia de Asistencia</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-[400px]">

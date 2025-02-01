@@ -26,7 +26,7 @@ export default function EmployeeCheckIn() {
   const checkInMutation = useMutation({
     mutationFn: async () => {
       if (!coordinates || !location) return;
-      
+
       return apiRequest("POST", "/api/attendance/check-in", {
         locationId: parseInt(location),
         latitude: coordinates.latitude,
@@ -35,13 +35,13 @@ export default function EmployeeCheckIn() {
     },
     onSuccess: () => {
       toast({
-        title: "Check-in successful",
-        description: "Your attendance has been recorded",
+        title: "Fichaje exitoso",
+        description: "Tu asistencia ha sido registrada",
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Check-in failed",
+        title: "Error al fichar",
         description: error.message,
         variant: "destructive",
       });
@@ -54,8 +54,8 @@ export default function EmployeeCheckIn() {
         (position) => setCoordinates(position.coords),
         (error) => {
           toast({
-            title: "Location Error",
-            description: "Please enable location services to check in",
+            title: "Error de ubicación",
+            description: "Por favor activa los servicios de ubicación para fichar",
             variant: "destructive",
           });
         }
@@ -68,17 +68,17 @@ export default function EmployeeCheckIn() {
       <div className="max-w-md mx-auto">
         <Card>
           <CardHeader>
-            <CardTitle>Check In/Out</CardTitle>
+            <CardTitle>Fichar Entrada/Salida</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Select Location</label>
+              <label className="text-sm font-medium">Seleccionar Ubicación</label>
               <Select
                 value={location}
                 onValueChange={setLocation}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a location" />
+                  <SelectValue placeholder="Seleccione una ubicación" />
                 </SelectTrigger>
                 <SelectContent>
                   {locations?.map((loc) => (
@@ -95,7 +95,7 @@ export default function EmployeeCheckIn() {
               onClick={() => checkInMutation.mutate()}
               disabled={!coordinates || !location || checkInMutation.isPending}
             >
-              {checkInMutation.isPending ? "Processing..." : "Check In"}
+              {checkInMutation.isPending ? "Procesando..." : "Fichar"}
             </Button>
           </CardContent>
         </Card>

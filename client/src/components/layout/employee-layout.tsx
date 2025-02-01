@@ -16,9 +16,9 @@ export default function EmployeeLayout({ children }: { children: React.ReactNode
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const menuItems = [
-    { icon: Clock, label: "Check In/Out", href: "/check-in" },
-    { icon: MessageSquare, label: "Messages", href: "/messages" },
-    { icon: Settings, label: "Settings", href: "/settings" },
+    { icon: Clock, label: "Fichar", href: "/check-in" },
+    { icon: MessageSquare, label: "Mensajes", href: "/messages" },
+    { icon: Settings, label: "Configuración", href: "/settings" },
   ];
 
   const MenuContent = () => (
@@ -40,7 +40,7 @@ export default function EmployeeLayout({ children }: { children: React.ReactNode
         onClick={() => logoutMutation.mutate()}
       >
         <LogOut className="h-5 w-5" />
-        Logout
+        Cerrar Sesión
       </Button>
     </div>
   );
@@ -61,7 +61,7 @@ export default function EmployeeLayout({ children }: { children: React.ReactNode
               </div>
             </SheetContent>
           </Sheet>
-          <h1 className="text-xl font-bold text-primary">AttendanceSystem</h1>
+          <h1 className="text-xl font-bold text-primary">Sistema de Asistencia</h1>
         </div>
         <div className="hidden lg:flex items-center gap-4">
           <MenuContent />

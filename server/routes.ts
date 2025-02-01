@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { setupWebSocket } from "./websocket";
 import { db } from "@db";
-import { locations, attendance, messages } from "@db/schema";
+import { locations, attendance, messages, users } from "@db/schema";
 import { eq, and, gte, lte } from "drizzle-orm";
 
 export function registerRoutes(app: Express): Server {
@@ -11,7 +11,14 @@ export function registerRoutes(app: Express): Server {
   const httpServer = createServer(app);
   setupWebSocket(httpServer);
 
-  // Location management
+  // Lista de usuarios (solo para administradores)
+  app.get("/api/users", async (req, res) => {
+    if (req.user?.role !== "admin") return res.sendStatus(403);
+    const allUsers = await db.select().from(users);
+    res.json(allUsers);
+  });
+
+  // Gestión de ubicaciones
   app.get("/api/locations", async (req, res) => {
     const allLocations = await db.select().from(locations);
     res.json(allLocations);
@@ -23,23 +30,27 @@ export function registerRoutes(app: Express): Server {
     res.json(location[0]);
   });
 
-  // Attendance management
+  // Gestión de asistencia
   app.post("/api/attendance/check-in", async (req, res) => {
     if (!req.user) return res.sendStatus(401);
-    
+
     const { locationId, latitude, longitude } = req.body;
     const [location] = await db.select().from(locations).where(eq(locations.id, locationId));
-    
-    // Check if user is within radius
+
+    if (!location) {
+      return res.status(404).json({ message: "Ubicación no encontrada" });
+    }
+
+    // Verificar si el usuario está dentro del radio
     const distance = calculateDistance(
       latitude,
       longitude,
       location.latitude,
       location.longitude
     );
-    
+
     if (distance > location.radius) {
-      return res.status(400).json({ message: "You are not within check-in range" });
+      return res.status(400).json({ message: "No estás dentro del rango permitido para fichar" });
     }
 
     const checkIn = await db.insert(attendance).values({
@@ -69,7 +80,28 @@ export function registerRoutes(app: Express): Server {
     res.json(history);
   });
 
-  // Messaging
+  // Estadísticas de asistencia (solo para administradores)
+  app.get("/api/attendance/stats", async (req, res) => {
+    if (req.user?.role !== "admin") return res.sendStatus(403);
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const todayAttendance = await db.select()
+      .from(attendance)
+      .where(gte(attendance.checkInTime, today));
+
+    const stats = {
+      today: todayAttendance.length,
+      onTime: todayAttendance.filter(a => a.status === "present").length,
+      late: todayAttendance.filter(a => a.status === "late").length,
+      trend: [] // TODO: Implementar tendencia
+    };
+
+    res.json(stats);
+  });
+
+  // Mensajería
   app.post("/api/messages", async (req, res) => {
     if (!req.user) return res.sendStatus(401);
     const message = await db.insert(messages).values({
@@ -92,7 +124,7 @@ export function registerRoutes(app: Express): Server {
 }
 
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371e3; // Earth's radius in meters
+  const R = 6371e3; // Radio de la Tierra en metros
   const φ1 = (lat1 * Math.PI) / 180;
   const φ2 = (lat2 * Math.PI) / 180;
   const Δφ = ((lat2 - lat1) * Math.PI) / 180;
@@ -103,5 +135,5 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
     Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-  return R * c; // Distance in meters
+  return R * c; // Distancia en metros
 }
