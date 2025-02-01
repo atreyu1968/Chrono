@@ -6,10 +6,13 @@ import {
   Users,
   LogOut,
   Menu,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useState } from "react";
+import { cn } from "@/lib/utils";
+import logo from "@/assets/images/logo.png";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { logoutMutation } = useAuth();
@@ -57,6 +60,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </SheetTrigger>
           <SheetContent side="left" className="w-64">
             <div className="mt-8">
+              <div className="flex items-center justify-between mb-6">
+                <img src={logo} alt="Chrono" className="h-8" />
+                <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(false)}>
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
               <SidebarContent />
             </div>
           </SheetContent>
@@ -66,6 +75,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Desktop Sidebar */}
       <div className="hidden lg:flex">
         <div className="w-64 min-h-screen bg-white border-r p-4">
+          <div className="flex items-center gap-3 mb-6">
+            <img src={logo} alt="Chrono" className="h-8" />
+            <span className="font-bold text-xl">Chrono</span>
+          </div>
           <SidebarContent />
         </div>
       </div>
