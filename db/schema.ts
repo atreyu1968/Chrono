@@ -48,7 +48,6 @@ export const userSettings = pgTable("user_settings", {
   animationsEnabled: boolean("animations_enabled").default(true).notNull(),
   animationSpeed: real("animation_speed").default(1).notNull(),
   sidebarCollapsed: boolean("sidebar_collapsed").default(false).notNull(),
-  compactMode: boolean("compact_mode").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });

@@ -7,7 +7,6 @@ type ThemeContextType = {
   appearance: "light" | "dark" | "system";
   animationsEnabled: boolean;
   animationSpeed: number;
-  compactMode: boolean;
   sidebarCollapsed: boolean;
 };
 
@@ -16,7 +15,6 @@ const ThemeContext = createContext<ThemeContextType>({
   appearance: "light",
   animationsEnabled: true,
   animationSpeed: 1,
-  compactMode: false,
   sidebarCollapsed: false,
 });
 
@@ -39,9 +37,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       document.documentElement.classList.toggle("dark", settings.appearance === "dark");
     }
 
-    // Aplicar modo compacto
-    document.documentElement.classList.toggle("compact", settings.compactMode);
-
     // Aplicar velocidad de animaciones
     document.documentElement.style.setProperty(
       "--animation-speed",
@@ -62,7 +57,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         appearance: settings?.appearance ?? "light",
         animationsEnabled: settings?.animationsEnabled ?? true,
         animationSpeed: settings?.animationSpeed ?? 1,
-        compactMode: settings?.compactMode ?? false,
         sidebarCollapsed: settings?.sidebarCollapsed ?? false,
       }}
     >

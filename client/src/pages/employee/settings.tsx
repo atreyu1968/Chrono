@@ -31,7 +31,6 @@ const settingsSchema = z.object({
   animationsEnabled: z.boolean(),
   animationSpeed: z.number().min(0).max(2),
   sidebarCollapsed: z.boolean(),
-  compactMode: z.boolean(),
 });
 
 type SettingsFormValues = z.infer<typeof settingsSchema>;
@@ -51,7 +50,6 @@ export default function SettingsPage() {
       animationsEnabled: true,
       animationSpeed: 1,
       sidebarCollapsed: false,
-      compactMode: false,
     },
   });
 
@@ -173,27 +171,6 @@ export default function SettingsPage() {
                       <FormDescription>
                         Ajusta la velocidad de las animaciones
                       </FormDescription>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="compactMode"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                      <div className="space-y-0.5">
-                        <FormLabel className="text-base">Modo Compacto</FormLabel>
-                        <FormDescription>
-                          Reduce el espaciado y tamaño de los elementos
-                        </FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
                     </FormItem>
                   )}
                 />
