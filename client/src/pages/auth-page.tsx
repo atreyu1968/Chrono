@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import logo from "@/assets/images/logo.png";
 
 const registerSchema = z.object({
   username: z.string().min(3, "El usuario debe tener al menos 3 caracteres"),
@@ -63,100 +64,109 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen grid md:grid-cols-2">
-      <div className="flex items-center justify-center p-8">
-        <Card className="w-full max-w-md">
-          <CardContent className="pt-6">
-            <Tabs defaultValue="login" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="login">Iniciar Sesión</TabsTrigger>
-                <TabsTrigger value="register">Registrarse</TabsTrigger>
-              </TabsList>
-              <TabsContent value="login">
-                <Form {...loginForm}>
-                  <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
-                    <FormField
-                      control={loginForm.control}
-                      name="username"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Usuario</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="Ingrese su usuario" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={loginForm.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Contraseña</FormLabel>
-                          <FormControl>
-                            <Input type="password" {...field} placeholder="Ingrese su contraseña" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <Button type="submit" className="w-full">
-                      {loginMutation.isPending ? "Iniciando sesión..." : "Iniciar Sesión"}
-                    </Button>
-                  </form>
-                </Form>
-              </TabsContent>
-              <TabsContent value="register">
-                <Form {...registerForm}>
-                  <form onSubmit={registerForm.handleSubmit(onRegister)} className="space-y-4">
-                    <FormField
-                      control={registerForm.control}
-                      name="fullName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Nombre Completo</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="Ingrese su nombre completo" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={registerForm.control}
-                      name="username"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Usuario</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="Elija un nombre de usuario" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={registerForm.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Contraseña</FormLabel>
-                          <FormControl>
-                            <Input type="password" {...field} placeholder="Elija una contraseña" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <Button type="submit" className="w-full">
-                      {registerMutation.isPending ? "Registrando..." : "Registrarse"}
-                    </Button>
-                  </form>
-                </Form>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+      <div className="flex flex-col items-center justify-center p-8">
+        <div className="w-full max-w-md">
+          <div className="flex flex-col items-center mb-8">
+            <img src={logo} alt="Chrono" className="h-12 mb-4" />
+            <h2 className="text-2xl font-bold text-gray-900">Bienvenido a Chrono</h2>
+            <p className="text-gray-600 text-center mt-2">
+              Sistema de Control de Asistencia
+            </p>
+          </div>
+          <Card>
+            <CardContent className="pt-6">
+              <Tabs defaultValue="login" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="login">Iniciar Sesión</TabsTrigger>
+                  <TabsTrigger value="register">Registrarse</TabsTrigger>
+                </TabsList>
+                <TabsContent value="login">
+                  <Form {...loginForm}>
+                    <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
+                      <FormField
+                        control={loginForm.control}
+                        name="username"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Usuario</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="Ingrese su usuario" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={loginForm.control}
+                        name="password"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Contraseña</FormLabel>
+                            <FormControl>
+                              <Input type="password" {...field} placeholder="Ingrese su contraseña" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <Button type="submit" className="w-full">
+                        {loginMutation.isPending ? "Iniciando sesión..." : "Iniciar Sesión"}
+                      </Button>
+                    </form>
+                  </Form>
+                </TabsContent>
+                <TabsContent value="register">
+                  <Form {...registerForm}>
+                    <form onSubmit={registerForm.handleSubmit(onRegister)} className="space-y-4">
+                      <FormField
+                        control={registerForm.control}
+                        name="fullName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Nombre Completo</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="Ingrese su nombre completo" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={registerForm.control}
+                        name="username"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Usuario</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="Elija un nombre de usuario" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={registerForm.control}
+                        name="password"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Contraseña</FormLabel>
+                            <FormControl>
+                              <Input type="password" {...field} placeholder="Elija una contraseña" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <Button type="submit" className="w-full">
+                        {registerMutation.isPending ? "Registrando..." : "Registrarse"}
+                      </Button>
+                    </form>
+                  </Form>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        </div>
       </div>
       <div 
         className="hidden md:block bg-cover bg-center"
