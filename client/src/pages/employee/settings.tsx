@@ -24,6 +24,8 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
 import EmployeeLayout from "@/components/layout/employee-layout";
+import { Fingerprint } from "lucide-react";
+import { startRegistration } from "@simplewebauthn/browser";
 
 const settingsSchema = z.object({
   theme: z.enum(["blue", "green", "purple", "orange"]),
@@ -62,6 +64,33 @@ export default function SettingsPage() {
       toast({
         title: "Configuración actualizada",
         description: "Tus preferencias han sido guardadas correctamente.",
+      });
+    },
+  });
+
+  const biometricMutation = useMutation({
+    mutationFn: async () => {
+      // 1. Get registration options from server
+      const optionsRes = await apiRequest("GET", "/api/auth/biometric/register");
+      const options = await optionsRes.json();
+
+      // 2. Create credentials
+      const credential = await startRegistration(options);
+
+      // 3. Verify with server
+      return apiRequest("POST", "/api/auth/biometric/verify-registration", credential);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Autenticación biométrica registrada",
+        description: "Ahora puedes usar la autenticación biométrica para iniciar sesión.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error al registrar autenticación biométrica",
+        description: error.message,
+        variant: "destructive",
       });
     },
   });
@@ -201,6 +230,26 @@ export default function SettingsPage() {
                 </Button>
               </form>
             </Form>
+
+            <div className="mt-8">
+              <h3 className="text-lg font-medium mb-4">Seguridad</h3>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => biometricMutation.mutate()}
+                disabled={biometricMutation.isPending}
+              >
+                {biometricMutation.isPending ? (
+                  "Registrando..."
+                ) : (
+                  <>
+                    <Fingerprint className="mr-2 h-4 w-4" />
+                    Configurar Autenticación Biométrica
+                  </>
+                )}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>

@@ -5,12 +5,83 @@ import { setupWebSocket } from "./websocket";
 import { db } from "@db";
 import { locations, attendance, messages, users, userSettings } from "@db/schema";
 import { eq, and, gte, lte, isNull } from "drizzle-orm";
-import { generateAuthenticationOptions, verifyAuthenticationResponse } from "@simplewebauthn/server";
+import { 
+  generateAuthenticationOptions, 
+  generateRegistrationOptions,
+  verifyAuthenticationResponse,
+  verifyRegistrationResponse 
+} from "@simplewebauthn/server";
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
   const httpServer = createServer(app);
   setupWebSocket(httpServer);
+
+  // Biometric registration routes
+  app.get("/api/auth/biometric/register", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ message: "No authenticated user" });
+    }
+
+    const options = await generateRegistrationOptions({
+      rpName: "Chrono",
+      rpID: process.env.RPID || "localhost",
+      userID: req.user.id.toString(),
+      userName: req.user.username,
+      attestationType: "none",
+      authenticatorSelection: {
+        authenticatorAttachment: "platform",
+        userVerification: "preferred",
+      },
+    });
+
+    // Store challenge in session for verification
+    req.session.challenge = options.challenge;
+
+    res.json(options);
+  });
+
+  app.post("/api/auth/biometric/verify-registration", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ message: "No authenticated user" });
+    }
+
+    try {
+      const expectedChallenge = req.session.challenge;
+      if (!expectedChallenge) {
+        return res.status(400).json({ message: "No challenge found" });
+      }
+
+      const verification = await verifyRegistrationResponse({
+        response: req.body,
+        expectedChallenge,
+        expectedOrigin: process.env.ORIGIN || "http://localhost:3000",
+        expectedRPID: process.env.RPID || "localhost",
+      });
+
+      if (verification.verified) {
+        const credentialPublicKey = verification.registrationInfo?.credentialPublicKey;
+        if (!credentialPublicKey) {
+          return res.status(400).json({ message: "No credential public key" });
+        }
+
+        // Store the credential
+        await db
+          .update(users)
+          .set({
+            biometricToken: Buffer.from(credentialPublicKey).toString('base64'),
+          })
+          .where(eq(users.id, req.user.id));
+
+        res.json({ verified: true });
+      } else {
+        res.status(400).json({ message: "Verification failed" });
+      }
+    } catch (error) {
+      console.error("Registration verification error:", error);
+      res.status(400).json({ message: "Registration failed" });
+    }
+  });
 
   // Biometric authentication routes
   app.get("/api/auth/biometric/challenge", async (req, res) => {
