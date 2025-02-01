@@ -9,24 +9,42 @@ export function setupWebSocket(server: Server) {
   });
 
   wss.on("connection", (ws: WebSocket) => {
-    console.log("New WebSocket connection established");
+    console.log("Nueva conexión WebSocket establecida");
 
     ws.on("message", (message: string) => {
-      // Broadcast attendance updates to all connected clients
-      wss.clients.forEach((client) => {
-        if (client !== ws && client.readyState === WebSocket.OPEN) {
-          client.send(message);
-        }
-      });
+      try {
+        // Transmitir actualizaciones de asistencia a todos los clientes conectados
+        wss.clients.forEach((client) => {
+          if (client !== ws && client.readyState === WebSocket.OPEN) {
+            client.send(message);
+          }
+        });
+      } catch (error) {
+        console.error("Error al procesar mensaje WebSocket:", error);
+      }
     });
 
     ws.on("close", () => {
-      console.log("Client disconnected");
+      console.log("Cliente desconectado");
     });
 
     ws.on("error", (error) => {
-      console.error("WebSocket error:", error);
+      console.error("Error en WebSocket:", error);
     });
+
+    // Enviar mensaje de confirmación al cliente
+    try {
+      ws.send(JSON.stringify({
+        type: "connection",
+        message: "Conexión establecida correctamente"
+      }));
+    } catch (error) {
+      console.error("Error al enviar mensaje de confirmación:", error);
+    }
+  });
+
+  wss.on("error", (error) => {
+    console.error("Error en el servidor WebSocket:", error);
   });
 
   return wss;
