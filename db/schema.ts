@@ -40,10 +40,27 @@ export const messages = pgTable("messages", {
   read: boolean("read").default(false).notNull()
 });
 
-export const userRelations = relations(users, ({ many }) => ({
+export const userSettings = pgTable("user_settings", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  theme: text("theme", { enum: ["blue", "green", "purple", "orange"] }).default("blue").notNull(),
+  appearance: text("appearance", { enum: ["light", "dark", "system"] }).default("light").notNull(),
+  animationsEnabled: boolean("animations_enabled").default(true).notNull(),
+  animationSpeed: real("animation_speed").default(1).notNull(),
+  sidebarCollapsed: boolean("sidebar_collapsed").default(false).notNull(),
+  compactMode: boolean("compact_mode").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+export const userRelations = relations(users, ({ many, one }) => ({
   attendance: many(attendance),
   sentMessages: many(messages, { relationName: "sentMessages" }),
-  receivedMessages: many(messages, { relationName: "receivedMessages" })
+  receivedMessages: many(messages, { relationName: "receivedMessages" }),
+  settings: one(userSettings, {
+    fields: [users.id],
+    references: [userSettings.userId],
+  })
 }));
 
 export const locationRelations = relations(locations, ({ many }) => ({
@@ -72,6 +89,13 @@ export const messageRelations = relations(messages, ({ one }) => ({
   })
 }));
 
+export const userSettingsRelations = relations(userSettings, ({ one }) => ({
+  user: one(users, {
+    fields: [userSettings.userId],
+    references: [users.id]
+  })
+}));
+
 export const insertUserSchema = createInsertSchema(users);
 export const selectUserSchema = createSelectSchema(users);
 export const insertLocationSchema = createInsertSchema(locations);
@@ -80,6 +104,8 @@ export const insertAttendanceSchema = createInsertSchema(attendance);
 export const selectAttendanceSchema = createSelectSchema(attendance);
 export const insertMessageSchema = createInsertSchema(messages);
 export const selectMessageSchema = createSelectSchema(messages);
+export const insertUserSettingsSchema = createInsertSchema(userSettings);
+export const selectUserSettingsSchema = createSelectSchema(userSettings);
 
 export type InsertUser = typeof users.$inferInsert;
 export type SelectUser = typeof users.$inferSelect;
@@ -89,3 +115,5 @@ export type InsertAttendance = typeof attendance.$inferInsert;
 export type SelectAttendance = typeof attendance.$inferSelect;
 export type InsertMessage = typeof messages.$inferInsert;
 export type SelectMessage = typeof messages.$inferSelect;
+export type InsertUserSettings = typeof userSettings.$inferInsert;
+export type SelectUserSettings = typeof userSettings.$inferSelect;

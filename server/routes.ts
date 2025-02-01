@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { setupWebSocket } from "./websocket";
 import { db } from "@db";
-import { locations, attendance, messages, users } from "@db/schema";
+import { locations, attendance, messages, users, userSettings } from "@db/schema";
 import { eq, and, gte, lte, isNull } from "drizzle-orm";
 
 export function registerRoutes(app: Express): Server {
