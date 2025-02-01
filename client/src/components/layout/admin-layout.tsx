@@ -224,16 +224,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="gap-2 text-white">
-                  <Avatar className="h-6 w-6">
+                <Button variant="ghost" className="flex items-center gap-2 text-white hover:bg-white/10">
+                  <Avatar className="h-8 w-8">
                     <AvatarImage src={user?.avatar} />
                     <AvatarFallback>
                       {user?.fullName?.split(" ").map(n => n[0]).join("")}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col items-start">
-                    <span className="text-sm font-medium">{user?.fullName}</span>
-                    <span className="text-xs opacity-90">Administrador</span>
+                    <span className="text-sm font-semibold">{user?.fullName}</span>
+                    <span className="text-xs text-white/80">Administrador</span>
                   </div>
                 </Button>
               </DropdownMenuTrigger>
@@ -364,15 +364,46 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="flex pt-16">
         {/* Sidebar */}
         <aside className={cn(
-          "hidden lg:flex flex-col fixed left-0 top-16 h-[calc(100vh-4rem)] bg-[#0F203E] text-white p-4 transition-all duration-300",
+          "hidden lg:flex flex-col fixed left-0 top-16 h-[calc(100vh-4rem)] bg-[#0F203E] text-white transition-all duration-300",
           settings?.sidebarCollapsed ? "w-16" : "w-64"
         )}>
-          <div className="flex flex-col h-full">
-            <MenuContent />
+          <div className="flex flex-col h-full p-4">
+            <div className="space-y-2">
+              {menuItems.map(({ icon: Icon, label, href }) => {
+                const isActive = location === href;
+                return (
+                  <Link key={href} href={href}>
+                    <Button
+                      variant={isActive ? "secondary" : "ghost"}
+                      className={cn(
+                        "w-full justify-start gap-2 text-sm font-medium",
+                        isActive && "bg-white/10 text-white",
+                        !isActive && "text-white/80 hover:text-white hover:bg-white/10",
+                        settings?.sidebarCollapsed && "px-2"
+                      )}
+                    >
+                      <Icon className={cn("h-4 w-4", isActive && "text-white")} />
+                      {!settings?.sidebarCollapsed && label}
+                    </Button>
+                  </Link>
+                );
+              })}
+            </div>
+            <Button
+              variant="ghost"
+              className={cn(
+                "w-full justify-start gap-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 mt-auto",
+                settings?.sidebarCollapsed && "px-2"
+              )}
+              onClick={() => logoutMutation.mutate()}
+            >
+              <LogOut className="h-4 w-4" />
+              {!settings?.sidebarCollapsed && "Cerrar Sesión"}
+            </Button>
             <Button
               variant="ghost"
               size="icon"
-              className="mt-4 text-white hover:text-white/90"
+              className="mt-4 text-white/80 hover:text-white"
               onClick={() => settingsMutation.mutate(!settings?.sidebarCollapsed)}
             >
               {settings?.sidebarCollapsed ? (
