@@ -86,8 +86,12 @@ export default function EmployeeLayout({ children }: { children: React.ReactNode
     <div className="min-h-screen bg-slate-50">
       {/* Navbar */}
       <nav className="fixed top-0 left-0 right-0 h-16 bg-[#0F203E] text-white shadow-md z-50">
-        <div className="container h-full mx-auto px-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="container h-full mx-auto px-4 flex items-center">
+          <div className="flex items-center gap-2">
+            <img src="/logo solo.png" alt="Logo" className="h-8" />
+            <span className="text-xl font-bold">Chrono</span>
+          </div>
+          <div className="flex items-center gap-4 flex-1 ml-4">
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="lg:hidden text-white hover:text-white/90">
@@ -96,7 +100,7 @@ export default function EmployeeLayout({ children }: { children: React.ReactNode
               </SheetTrigger>
               <SheetContent side="left" className="w-64 p-4">
                 <div className="flex items-center justify-between mb-6">
-                  <img src={logo} alt="Logo" className="h-8" />
+                  <img src="/logo solo.png" alt="Logo" className="h-8" />
                   <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(false)}>
                     <X className="h-5 w-5" />
                   </Button>
@@ -104,7 +108,6 @@ export default function EmployeeLayout({ children }: { children: React.ReactNode
                 <MenuContent />
               </SheetContent>
             </Sheet>
-            <img src={logo} alt="Logo" className="h-8 hidden lg:block" />
             <h1 className="text-xl font-bold text-white">Sistema de Asistencia</h1>
           </div>
         </div>

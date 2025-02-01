@@ -203,9 +203,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </SheetTrigger>
               <SheetContent side="left" className="w-64">
                 <div className="mt-8">
-                  <div className="flex items-center justify-between mb-6">
-                    <img src={logo} alt="Chrono" className="h-8" />
-                    <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(false)}>
+                  <div className="flex items-center gap-2 mb-6">
+                    <img src="/logo solo.png" alt="Logo" className="h-8" />
+                    <span className="text-xl font-bold">Chrono</span>
+                    <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(false)} className="ml-auto">
                       <X className="h-5 w-5" />
                     </Button>
                   </div>
@@ -213,7 +214,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </div>
               </SheetContent>
             </Sheet>
-            <img src={logo} alt="Logo" className="h-8 hidden lg:block" />
+            <div className="hidden lg:flex items-center gap-2">
+              <img src="/logo solo.png" alt="Logo" className="h-8" />
+              <span className="text-xl font-bold">Chrono</span>
+            </div>
             <h1 className="text-xl font-bold text-white">Panel de Administración</h1>
           </div>
 
