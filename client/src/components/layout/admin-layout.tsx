@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   ChevronRight,
   User,
+  Building2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -151,6 +152,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { icon: LayoutDashboard, label: "Panel", href: "/admin" },
     { icon: MapPin, label: "Ubicaciones", href: "/admin/locations" },
     { icon: Users, label: "Usuarios", href: "/admin/users" },
+    { icon: Building2, label: "Departamentos", href: "/admin/departments" },
   ];
 
   const MenuContent = () => (
@@ -381,10 +383,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* Main Content */}
         <main className={cn(
-          "flex-1 p-6 transition-all duration-300",
+          "flex-1 p-6 transition-all duration-300 relative",
           settings?.sidebarCollapsed ? "lg:ml-16" : "lg:ml-64"
         )}>
-          <div className="container mx-auto">
+          {/* Background with watermark effect */}
+          <div 
+            className="fixed inset-0 z-0 opacity-[0.03] pointer-events-none"
+            style={{ 
+              backgroundImage: 'url("/fondo.jpg")',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+            }}
+          />
+
+          {/* Content container */}
+          <div className="container mx-auto relative z-10">
             {children}
           </div>
         </main>
