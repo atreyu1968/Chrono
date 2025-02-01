@@ -22,6 +22,8 @@ export const users = pgTable("users", {
   fullName: text("full_name").notNull(),
   email: text("email").unique().notNull(),
   phone: text("phone"),
+  // Keep both columns temporarily for compatibility
+  department: text("department"),
   departmentId: integer("department_id").references(() => departments.id),
   avatar: text("avatar_url"),
   emergencyContact: text("emergency_contact"),

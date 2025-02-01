@@ -33,7 +33,10 @@ async function comparePasswords(supplied: string, stored: string) {
 }
 
 async function getUserByUsername(username: string) {
-  return db.select().from(users).where(eq(users.username, username)).limit(1);
+  const result = await db.select().from(users)
+    .where(eq(users.username, username))
+    .limit(1);
+  return result;
 }
 
 export function setupAuth(app: Express) {
@@ -55,24 +58,32 @@ export function setupAuth(app: Express) {
 
   passport.use(
     new LocalStrategy(async (username, password, done) => {
-      const [user] = await getUserByUsername(username);
-      if (!user || !(await comparePasswords(password, user.password))) {
-        return done(null, false);
-      } else {
-        return done(null, user);
+      try {
+        const [user] = await getUserByUsername(username);
+        if (!user || !(await comparePasswords(password, user.password))) {
+          return done(null, false);
+        } else {
+          return done(null, user);
+        }
+      } catch (error) {
+        return done(error);
       }
     }),
   );
 
   passport.serializeUser((user, done) => done(null, user.id));
   passport.deserializeUser(async (id: number, done) => {
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, id))
-      .limit(1);
+    try {
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, id))
+        .limit(1);
 
-    done(null, user);
+      done(null, user);
+    } catch (error) {
+      done(error);
+    }
   });
 
   app.post("/api/register", async (req, res, next) => {
@@ -87,18 +98,24 @@ export function setupAuth(app: Express) {
       return res.status(400).send("Username already exists");
     }
 
-    const [user] = await db
-      .insert(users)
-      .values({
-        ...result.data,
-        password: await hashPassword(result.data.password),
-      })
-      .returning();
+    try {
+      const [user] = await db
+        .insert(users)
+        .values({
+          ...result.data,
+          password: await hashPassword(result.data.password),
+          // Mantener el departamento como texto por compatibilidad
+          department: result.data.department,
+        })
+        .returning();
 
-    req.login(user, (err) => {
-      if (err) return next(err);
-      res.status(201).json(user);
-    });
+      req.login(user, (err) => {
+        if (err) return next(err);
+        res.status(201).json(user);
+      });
+    } catch (error) {
+      next(error);
+    }
   });
 
   app.post("/api/login", passport.authenticate("local"), (req, res) => {
