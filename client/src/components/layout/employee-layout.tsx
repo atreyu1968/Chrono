@@ -85,12 +85,12 @@ export default function EmployeeLayout({ children }: { children: React.ReactNode
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Navbar */}
-      <nav className="fixed top-0 left-0 right-0 h-16 bg-primary text-primary-foreground shadow-md z-50">
+      <nav className="fixed top-0 left-0 right-0 h-16 bg-[#0F203E] text-white shadow-md z-50">
         <div className="container h-full mx-auto px-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="lg:hidden text-primary-foreground">
+                <Button variant="ghost" size="icon" className="lg:hidden text-white hover:text-white/90">
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
@@ -105,7 +105,7 @@ export default function EmployeeLayout({ children }: { children: React.ReactNode
               </SheetContent>
             </Sheet>
             <img src={logo} alt="Logo" className="h-8 hidden lg:block" />
-            <h1 className="text-xl font-bold">Sistema de Asistencia</h1>
+            <h1 className="text-xl font-bold text-white">Sistema de Asistencia</h1>
           </div>
         </div>
       </nav>
@@ -114,7 +114,7 @@ export default function EmployeeLayout({ children }: { children: React.ReactNode
       <div className="flex pt-16">
         {/* Sidebar */}
         <aside className={cn(
-          "hidden lg:flex flex-col fixed left-0 top-16 h-[calc(100vh-4rem)] bg-primary text-primary-foreground p-4 transition-all duration-300",
+          "hidden lg:flex flex-col fixed left-0 top-16 h-[calc(100vh-4rem)] bg-[#0F203E] text-white p-4 transition-all duration-300",
           settings?.sidebarCollapsed ? "w-16" : "w-64"
         )}>
           <div className="flex flex-col h-full">
@@ -122,7 +122,7 @@ export default function EmployeeLayout({ children }: { children: React.ReactNode
             <Button
               variant="ghost"
               size="icon"
-              className="mt-4 text-primary-foreground"
+              className="mt-4 text-white hover:text-white/90"
               onClick={() => settingsMutation.mutate(!settings?.sidebarCollapsed)}
             >
               {settings?.sidebarCollapsed ? (

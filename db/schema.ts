@@ -2,6 +2,14 @@ import { pgTable, text, serial, integer, boolean, timestamp, real } from "drizzl
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
 
+export const departments = pgTable("departments", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").unique().notNull(),
@@ -14,7 +22,7 @@ export const users = pgTable("users", {
   fullName: text("full_name").notNull(),
   email: text("email").unique().notNull(),
   phone: text("phone"),
-  department: text("department"),
+  departmentId: integer("department_id").references(() => departments.id),
   avatar: text("avatar_url"),
   emergencyContact: text("emergency_contact"),
   emergencyPhone: text("emergency_phone"),
@@ -62,6 +70,10 @@ export const userSettings = pgTable("user_settings", {
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
 
+export const departmentRelations = relations(departments, ({ many }) => ({
+  users: many(users)
+}));
+
 export const userRelations = relations(users, ({ many, one }) => ({
   attendance: many(attendance),
   sentMessages: many(messages, { relationName: "sentMessages" }),
@@ -69,6 +81,10 @@ export const userRelations = relations(users, ({ many, one }) => ({
   settings: one(userSettings, {
     fields: [users.id],
     references: [userSettings.userId],
+  }),
+  department: one(departments, {
+    fields: [users.departmentId],
+    references: [departments.id],
   })
 }));
 
@@ -105,6 +121,9 @@ export const userSettingsRelations = relations(userSettings, ({ one }) => ({
   })
 }));
 
+export const insertDepartmentSchema = createInsertSchema(departments);
+export const selectDepartmentSchema = createSelectSchema(departments);
+
 export const insertUserSchema = createInsertSchema(users);
 export const selectUserSchema = createSelectSchema(users);
 export const insertLocationSchema = createInsertSchema(locations);
@@ -116,6 +135,8 @@ export const selectMessageSchema = createSelectSchema(messages);
 export const insertUserSettingsSchema = createInsertSchema(userSettings);
 export const selectUserSettingsSchema = createSelectSchema(userSettings);
 
+export type InsertDepartment = typeof departments.$inferInsert;
+export type SelectDepartment = typeof departments.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type SelectUser = typeof users.$inferSelect;
 export type InsertLocation = typeof locations.$inferInsert;

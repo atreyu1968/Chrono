@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { setupWebSocket } from "./websocket";
 import { db } from "@db";
-import { locations, attendance, messages, users, userSettings } from "@db/schema";
+import { locations, attendance, messages, users, userSettings, departments } from "@db/schema";
 import { eq, and, gte, lte, isNull } from "drizzle-orm";
 import fileUpload from "express-fileupload";
 import path from "path";
@@ -489,6 +489,72 @@ export function registerRoutes(app: Express): Server {
     }
 
     res.json(updatedSettings);
+  });
+
+  // Department routes
+  app.get("/api/departments", async (req, res) => {
+    try {
+      const allDepartments = await db.select().from(departments);
+      res.json(allDepartments);
+    } catch (error) {
+      console.error("Error fetching departments:", error);
+      res.status(500).json({ message: "Error al obtener los departamentos" });
+    }
+  });
+
+  app.post("/api/departments", async (req, res) => {
+    if (req.user?.role !== "admin") return res.sendStatus(403);
+
+    try {
+      const [department] = await db
+        .insert(departments)
+        .values({
+          name: req.body.name,
+          description: req.body.description,
+          updatedAt: new Date()
+        })
+        .returning();
+
+      res.json(department);
+    } catch (error) {
+      console.error("Error creating department:", error);
+      res.status(500).json({ message: "Error al crear el departamento" });
+    }
+  });
+
+  app.patch("/api/departments/:id", async (req, res) => {
+    if (req.user?.role !== "admin") return res.sendStatus(403);
+
+    try {
+      const [department] = await db
+        .update(departments)
+        .set({
+          ...req.body,
+          updatedAt: new Date()
+        })
+        .where(eq(departments.id, parseInt(req.params.id)))
+        .returning();
+
+      res.json(department);
+    } catch (error) {
+      console.error("Error updating department:", error);
+      res.status(500).json({ message: "Error al actualizar el departamento" });
+    }
+  });
+
+  app.delete("/api/departments/:id", async (req, res) => {
+    if (req.user?.role !== "admin") return res.sendStatus(403);
+
+    try {
+      await db
+        .delete(departments)
+        .where(eq(departments.id, parseInt(req.params.id)));
+
+      res.sendStatus(200);
+    } catch (error) {
+      console.error("Error deleting department:", error);
+      res.status(500).json({ message: "Error al eliminar el departamento" });
+    }
   });
 
   return httpServer;
