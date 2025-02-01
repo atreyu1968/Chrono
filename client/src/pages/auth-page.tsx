@@ -22,6 +22,7 @@ const registerSchema = z.object({
   username: z.string().min(3, "El usuario debe tener al menos 3 caracteres"),
   password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
   fullName: z.string().min(1, "El nombre completo es requerido"),
+  email: z.string().email("El email no es válido"),
 });
 
 const loginSchema = z.object({
@@ -47,6 +48,7 @@ export default function AuthPage() {
       username: "",
       password: "",
       fullName: "",
+      email: "",
     },
   });
 
@@ -166,6 +168,19 @@ export default function AuthPage() {
                             <FormLabel>Nombre Completo</FormLabel>
                             <FormControl>
                               <Input {...field} placeholder="Ingrese su nombre completo" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={registerForm.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Correo Electrónico</FormLabel>
+                            <FormControl>
+                              <Input {...field} type="email" placeholder="Ingrese su correo electrónico" />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
