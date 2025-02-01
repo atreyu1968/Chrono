@@ -26,11 +26,16 @@ export function registerRoutes(app: Express): Server {
     }
 
     try {
+      const rpID = process.env.REPL_SLUG ? `${process.env.REPL_SLUG}.repl.co` : "localhost";
+      const origin = process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.repl.co` : "http://localhost:3000";
+
+      console.log("[Biometric Register] Using RPID:", rpID, "and origin:", origin);
       console.log("[Biometric Register] Generating registration options for user:", req.user.username);
+
       const options = await generateRegistrationOptions({
         rpName: "Chrono",
-        rpID: process.env.RPID || "localhost",
-        userID: new Uint8Array([req.user.id]), // Convert number to Uint8Array
+        rpID: rpID,
+        userID: new Uint8Array([req.user.id]),
         userName: req.user.username,
         attestationType: "none",
         authenticatorSelection: {
@@ -64,12 +69,17 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ message: "No challenge found" });
       }
 
+      const rpID = process.env.REPL_SLUG ? `${process.env.REPL_SLUG}.repl.co` : "localhost";
+      const origin = process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.repl.co` : "http://localhost:3000";
+
+      console.log("[Biometric Verify] Using RPID:", rpID, "and origin:", origin);
       console.log("[Biometric Verify] Verifying registration response");
+
       const verification = await verifyRegistrationResponse({
         response: req.body,
         expectedChallenge,
-        expectedOrigin: process.env.ORIGIN || "http://localhost:3000",
-        expectedRPID: process.env.RPID || "localhost",
+        expectedOrigin: origin,
+        expectedRPID: rpID,
       });
 
       console.log("[Biometric Verify] Verification result:", verification.verified);
@@ -100,11 +110,13 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Biometric authentication routes
+  // También actualizar las rutas de autenticación
   app.get("/api/auth/biometric/challenge", async (req, res) => {
     if (!req.user?.biometricToken) {
       return res.status(400).json({ message: "No biometric token registered" });
     }
+
+    const rpID = process.env.REPL_SLUG ? `${process.env.REPL_SLUG}.repl.co` : "localhost";
 
     const options = await generateAuthenticationOptions({
       allowCredentials: [{
@@ -112,6 +124,7 @@ export function registerRoutes(app: Express): Server {
         type: 'public-key',
       }],
       userVerification: "preferred",
+      rpID: rpID,
     });
 
     // Store challenge in session for verification
@@ -127,6 +140,9 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ message: "No challenge found" });
       }
 
+      const rpID = process.env.REPL_SLUG ? `${process.env.REPL_SLUG}.repl.co` : "localhost";
+      const origin = process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.repl.co` : "http://localhost:3000";
+
       const [user] = await db
         .select()
         .from(users)
@@ -140,8 +156,8 @@ export function registerRoutes(app: Express): Server {
       const verification = await verifyAuthenticationResponse({
         response: req.body,
         expectedChallenge,
-        expectedOrigin: process.env.ORIGIN || "http://localhost:3000",
-        expectedRPID: process.env.RPID || "localhost",
+        expectedOrigin: origin,
+        expectedRPID: rpID,
         authenticator: {
           credentialPublicKey: Buffer.from(user.biometricToken, 'base64'),
           credentialID: Buffer.from(req.body.id, 'base64'),
