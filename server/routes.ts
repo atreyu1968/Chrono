@@ -30,7 +30,7 @@ export function registerRoutes(app: Express): Server {
       const options = await generateRegistrationOptions({
         rpName: "Chrono",
         rpID: process.env.RPID || "localhost",
-        userID: req.user.id.toString(),
+        userID: new Uint8Array([req.user.id]), // Convert number to Uint8Array
         userName: req.user.username,
         attestationType: "none",
         authenticatorSelection: {
@@ -73,8 +73,8 @@ export function registerRoutes(app: Express): Server {
       });
 
       console.log("[Biometric Verify] Verification result:", verification.verified);
-      if (verification.verified) {
-        const credentialPublicKey = verification.registrationInfo?.credentialPublicKey;
+      if (verification.verified && verification.registrationInfo) {
+        const credentialPublicKey = verification.registrationInfo.credentialPublicKey;
         if (!credentialPublicKey) {
           console.log("[Biometric Verify] Error: No credential public key");
           return res.status(400).json({ message: "No credential public key" });
