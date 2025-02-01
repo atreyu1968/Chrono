@@ -24,9 +24,9 @@ function Router() {
           return <Redirect to={user.role === "admin" ? "/admin" : "/check-in"} />;
         }}
       </Route>
-      <ProtectedRoute path="/admin" component={AdminDashboard} />
-      <ProtectedRoute path="/admin/locations" component={AdminLocations} />
-      <ProtectedRoute path="/admin/users" component={AdminUsers} />
+      <ProtectedRoute path="/admin" component={AdminDashboard} requireAdmin />
+      <ProtectedRoute path="/admin/locations" component={AdminLocations} requireAdmin />
+      <ProtectedRoute path="/admin/users" component={AdminUsers} requireAdmin />
       <ProtectedRoute path="/check-in" component={EmployeeCheckIn} />
       <Route component={NotFound} />
     </Switch>
