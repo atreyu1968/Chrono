@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Fingerprint } from "lucide-react";
-import logo from "@/assets/images/logo.png";
+import logo from "@/assets/images/logo solo.png";
 
 const registerSchema = z.object({
   username: z.string().min(3, "El usuario debe tener al menos 3 caracteres"),
