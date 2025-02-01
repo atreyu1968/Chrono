@@ -8,7 +8,15 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   role: text("role", { enum: ["admin", "employee"] }).default("employee").notNull(),
   fullName: text("full_name").notNull(),
+  email: text("email").default("user@example.com").notNull(),
+  phone: text("phone"),
   department: text("department"),
+  employeeType: text("employee_type", { 
+    enum: ["full_time", "part_time", "contractor", "intern"] 
+  }).default("full_time").notNull(),
+  avatar: text("avatar_url"),
+  emergencyContact: text("emergency_contact"),
+  emergencyPhone: text("emergency_phone"),
   biometricToken: text("biometric_token"),
   pin: text("pin")
 });
@@ -48,6 +56,7 @@ export const userSettings = pgTable("user_settings", {
   animationsEnabled: boolean("animations_enabled").default(true).notNull(),
   animationSpeed: real("animation_speed").default(1).notNull(),
   sidebarCollapsed: boolean("sidebar_collapsed").default(false).notNull(),
+  compactMode: boolean("compact_mode").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });

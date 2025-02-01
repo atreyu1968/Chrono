@@ -46,12 +46,26 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+
+const employeeTypes = [
+  "full_time",
+  "part_time",
+  "contractor",
+  "intern"
+] as const;
 
 const userSchema = z.object({
   username: z.string().min(3),
   fullName: z.string().min(1, "El nombre completo es requerido"),
+  email: z.string().email("Email inválido"),
+  phone: z.string().optional(),
   department: z.string().min(1, "El departamento es requerido"),
+  employeeType: z.enum(employeeTypes),
   role: z.enum(["admin", "employee"]),
+  avatar: z.string().optional(),
+  emergencyContact: z.string().optional(),
+  emergencyPhone: z.string().optional(),
   password: z.string().min(6).optional(),
 });
 
@@ -73,12 +87,12 @@ export default function UsersPage() {
     queryKey: ["/api/users"],
   });
 
-  // Calcular estadísticas de usuarios
   const userStats = {
     total: users?.length || 0,
     admins: users?.filter((u) => u.role === "admin").length || 0,
-    departments: users 
-      ? Array.from(new Set(users.map(u => u.department).filter(Boolean))).length 
+    fullTime: users?.filter((u) => u.employeeType === "full_time").length || 0,
+    departments: users
+      ? Array.from(new Set(users.map(u => u.department).filter(Boolean))).length
       : 0
   };
 
@@ -87,13 +101,25 @@ export default function UsersPage() {
     defaultValues: editingUser ? {
       username: editingUser.username,
       fullName: editingUser.fullName,
-      department: editingUser.department || '',  // Handle null case
+      email: editingUser.email,
+      phone: editingUser.phone || '',
+      department: editingUser.department || '',
+      employeeType: editingUser.employeeType,
       role: editingUser.role,
+      avatar: editingUser.avatar || '',
+      emergencyContact: editingUser.emergencyContact || '',
+      emergencyPhone: editingUser.emergencyPhone || '',
     } : {
       username: "",
       fullName: "",
+      email: "",
+      phone: "",
       department: "",
+      employeeType: "full_time",
       role: "employee",
+      avatar: "",
+      emergencyContact: "",
+      emergencyPhone: "",
     },
   });
 
@@ -144,7 +170,7 @@ export default function UsersPage() {
   return (
     <AdminLayout>
       <div className="p-6">
-        <div className="grid gap-4 md:grid-cols-3 mb-6">
+        <div className="grid gap-4 md:grid-cols-4 mb-6">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle>Total de Usuarios</CardTitle>
@@ -162,6 +188,14 @@ export default function UsersPage() {
             </CardContent>
           </Card>
           <Card>
+            <CardHeader className="pb-2">
+              <CardTitle>Tiempo Completo</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-bold">{userStats.fullTime}</p>
+            </CardContent>
+          </Card>
+           <Card>
             <CardHeader className="pb-2">
               <CardTitle>Departamentos</CardTitle>
             </CardHeader>
@@ -188,6 +222,7 @@ export default function UsersPage() {
               </DialogHeader>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
                   <FormField
                     control={form.control}
                     name="username"
@@ -209,6 +244,32 @@ export default function UsersPage() {
                         <FormLabel>Nombre Completo</FormLabel>
                         <FormControl>
                           <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input type="email" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                   <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Teléfono</FormLabel>
+                        <FormControl>
+                          <Input type="tel" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -241,6 +302,32 @@ export default function UsersPage() {
                       </FormItem>
                     )}
                   />
+                    <FormField
+                      control={form.control}
+                      name="employeeType"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Tipo de Empleado</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Seleccionar tipo" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="full_time">Tiempo Completo</SelectItem>
+                              <SelectItem value="part_time">Medio Tiempo</SelectItem>
+                              <SelectItem value="contractor">Contratista</SelectItem>
+                              <SelectItem value="intern">Practicante</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   <FormField
                     control={form.control}
                     name="role"
@@ -265,6 +352,46 @@ export default function UsersPage() {
                       </FormItem>
                     )}
                   />
+                     <FormField
+                    control={form.control}
+                    name="avatar"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>URL del Avatar</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                    <FormField
+                    control={form.control}
+                    name="emergencyContact"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Contacto de Emergencia</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="emergencyPhone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Teléfono de Emergencia</FormLabel>
+                        <FormControl>
+                          <Input type="tel" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  </div>
                   {!editingUser && (
                     <FormField
                       control={form.control}
@@ -293,13 +420,15 @@ export default function UsersPage() {
           </Dialog>
         </div>
 
-        <div className="bg-white rounded-lg shadow">
+        <div className="bg-white rounded-lg shadow mt-6">
           <Table>
             <TableHeader>
               <TableRow>
+                 <TableHead>Avatar</TableHead>
                 <TableHead>Nombre Completo</TableHead>
-                <TableHead>Usuario</TableHead>
+                 <TableHead>Email</TableHead>
                 <TableHead>Departamento</TableHead>
+                <TableHead>Tipo</TableHead>
                 <TableHead>Rol</TableHead>
                 <TableHead className="w-[150px]">Acciones</TableHead>
               </TableRow>
@@ -307,9 +436,20 @@ export default function UsersPage() {
             <TableBody>
               {users?.map((user) => (
                 <TableRow key={user.id}>
+                   <TableCell>
+                    <Avatar>
+                      <AvatarImage src={user.avatar || undefined} alt={user.fullName} />
+                      <AvatarFallback>
+                        {user.fullName.split(' ').map(n => n[0]).join('').toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </TableCell>
                   <TableCell className="font-medium">{user.fullName}</TableCell>
-                  <TableCell>{user.username}</TableCell>
+                  <TableCell>{user.email}</TableCell>
                   <TableCell>{user.department}</TableCell>
+                     <TableCell>
+                      <span className="capitalize">{user.employeeType?.replace('_', ' ')}</span>
+                    </TableCell>
                   <TableCell>
                     <span
                       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -331,8 +471,14 @@ export default function UsersPage() {
                           form.reset({
                             username: user.username,
                             fullName: user.fullName,
+                             email: user.email,
+                             phone: user.phone || '',
                             department: user.department,
+                            employeeType: user.employeeType,
                             role: user.role,
+                            avatar: user.avatar || '',
+                            emergencyContact: user.emergencyContact || '',
+                            emergencyPhone: user.emergencyPhone || '',
                           });
                           setIsDialogOpen(true);
                         }}
