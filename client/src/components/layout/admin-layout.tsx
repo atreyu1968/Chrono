@@ -393,7 +393,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div 
             className="fixed inset-0 z-0 opacity-[0.03] pointer-events-none"
             style={{ 
-              backgroundImage: 'url("/fondo.jpg")',
+              backgroundImage: 'url("/src/assets/images/fondo.png")',
               backgroundSize: 'cover',
               backgroundPosition: 'center',
               backgroundRepeat: 'no-repeat',
