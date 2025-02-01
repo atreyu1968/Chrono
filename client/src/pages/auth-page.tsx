@@ -79,11 +79,11 @@ export default function AuthPage() {
       <div className="flex flex-col items-center justify-center p-8">
         <div className="w-full max-w-md">
           <div className="flex flex-col items-center mb-8">
-            <img src={logo} alt="Chrono" className="h-20 mb-4" />
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+            <img src={logo} alt="Chrono" className="h-25 mb-4" />
+            <h2 className="text-2xl font-bold text-white">
               Bienvenido a Chrono
             </h2>
-            <p className="text-base font-medium text-gray-700 dark:text-gray-300 text-center mt-2">
+            <p className="text-base font-medium text-white text-center mt-2">
               Sistema de Control de Asistencia
             </p>
           </div>
