@@ -4,7 +4,7 @@ import { setupAuth } from "./auth";
 import { setupWebSocket } from "./websocket";
 import { db } from "@db";
 import { locations, attendance, messages, users } from "@db/schema";
-import { eq, and, gte, lte } from "drizzle-orm";
+import { eq, and, gte, lte, isNull } from "drizzle-orm";
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
@@ -104,10 +104,10 @@ export function registerRoutes(app: Express): Server {
       .where(
         and(
           eq(attendance.userId, req.user.id),
-          eq(attendance.checkOutTime, null)
+          isNull(attendance.checkOutTime)
         )
       )
-      .orderBy(attendance.checkInTime, "desc")
+      .orderBy(attendance.checkInTime as any, "desc")
       .limit(1);
 
     if (!latestAttendance) {
@@ -202,6 +202,65 @@ export function registerRoutes(app: Express): Server {
       .from(messages)
       .where(eq(messages.toUserId, req.user.id));
     res.json(userMessages);
+  });
+
+  // User Settings routes
+  app.get("/api/user/settings", async (req, res) => {
+    if (!req.user) return res.sendStatus(401);
+
+    const [settings] = await db
+      .select()
+      .from(userSettings)
+      .where(eq(userSettings.userId, req.user.id))
+      .limit(1);
+
+    if (!settings) {
+      // Return default settings if none exist
+      return res.json({
+        theme: "blue",
+        appearance: "light",
+        animationsEnabled: true,
+        animationSpeed: 1,
+        sidebarCollapsed: false,
+        compactMode: false,
+      });
+    }
+
+    res.json(settings);
+  });
+
+  app.patch("/api/user/settings", async (req, res) => {
+    if (!req.user) return res.sendStatus(401);
+
+    const [existingSettings] = await db
+      .select()
+      .from(userSettings)
+      .where(eq(userSettings.userId, req.user.id))
+      .limit(1);
+
+    let updatedSettings;
+    if (existingSettings) {
+      [updatedSettings] = await db
+        .update(userSettings)
+        .set({
+          ...req.body,
+          updatedAt: new Date(),
+        })
+        .where(eq(userSettings.userId, req.user.id))
+        .returning();
+    } else {
+      [updatedSettings] = await db
+        .insert(userSettings)
+        .values({
+          userId: req.user.id,
+          ...req.body,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+    }
+
+    res.json(updatedSettings);
   });
 
   return httpServer;

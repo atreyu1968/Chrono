@@ -43,26 +43,25 @@ import { UserPlus, Edit2, Mail, BarChart2 } from "lucide-react";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 
 const userSchema = z.object({
   username: z.string().min(3),
-  fullName: z.string().min(1, "Full name is required"),
-  department: z.string().min(1, "Department is required"),
+  fullName: z.string().min(1, "El nombre completo es requerido"),
+  department: z.string().min(1, "El departamento es requerido"),
   role: z.enum(["admin", "employee"]),
   password: z.string().min(6).optional(),
 });
 
 const departments = [
-  "Engineering",
-  "Sales",
+  "Ingeniería",
+  "Ventas",
   "Marketing",
-  "HR",
-  "Finance",
-  "Operations",
+  "Recursos Humanos",
+  "Finanzas",
+  "Operaciones",
 ];
 
 export default function UsersPage() {
@@ -74,9 +73,23 @@ export default function UsersPage() {
     queryKey: ["/api/users"],
   });
 
+  // Calcular estadísticas de usuarios
+  const userStats = {
+    total: users?.length || 0,
+    admins: users?.filter((u) => u.role === "admin").length || 0,
+    departments: users 
+      ? Array.from(new Set(users.map(u => u.department).filter(Boolean))).length 
+      : 0
+  };
+
   const form = useForm<z.infer<typeof userSchema>>({
     resolver: zodResolver(userSchema),
-    defaultValues: {
+    defaultValues: editingUser ? {
+      username: editingUser.username,
+      fullName: editingUser.fullName,
+      department: editingUser.department || '',  // Handle null case
+      role: editingUser.role,
+    } : {
       username: "",
       fullName: "",
       department: "",
@@ -98,7 +111,7 @@ export default function UsersPage() {
       form.reset();
       setEditingUser(null);
       toast({
-        title: `User ${editingUser ? "updated" : "created"} successfully`,
+        title: `Usuario ${editingUser ? "actualizado" : "creado"} exitosamente`,
       });
     },
     onError: (error: Error) => {
@@ -119,7 +132,7 @@ export default function UsersPage() {
     },
     onSuccess: () => {
       toast({
-        title: "Message sent successfully",
+        title: "Mensaje enviado exitosamente",
       });
     },
   });
@@ -128,20 +141,13 @@ export default function UsersPage() {
     mutation.mutate(values);
   };
 
-  // Calculate user statistics
-  const userStats = {
-    total: users?.length || 0,
-    admins: users?.filter((u) => u.role === "admin").length || 0,
-    departments: [...new Set(users?.map((u) => u.department))].length || 0,
-  };
-
   return (
     <AdminLayout>
       <div className="p-6">
         <div className="grid gap-4 md:grid-cols-3 mb-6">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle>Total Users</CardTitle>
+              <CardTitle>Total de Usuarios</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold">{userStats.total}</p>
@@ -149,7 +155,7 @@ export default function UsersPage() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle>Administrators</CardTitle>
+              <CardTitle>Administradores</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold">{userStats.admins}</p>
@@ -157,7 +163,7 @@ export default function UsersPage() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle>Departments</CardTitle>
+              <CardTitle>Departamentos</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold">{userStats.departments}</p>
@@ -166,18 +172,18 @@ export default function UsersPage() {
         </div>
 
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Users</h1>
+          <h1 className="text-3xl font-bold">Usuarios</h1>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button>
                 <UserPlus className="h-4 w-4 mr-2" />
-                Add User
+                Agregar Usuario
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>
-                  {editingUser ? "Edit User" : "Add New User"}
+                  {editingUser ? "Editar Usuario" : "Agregar Nuevo Usuario"}
                 </DialogTitle>
               </DialogHeader>
               <Form {...form}>
@@ -187,7 +193,7 @@ export default function UsersPage() {
                     name="username"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Username</FormLabel>
+                        <FormLabel>Usuario</FormLabel>
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
@@ -200,7 +206,7 @@ export default function UsersPage() {
                     name="fullName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Full Name</FormLabel>
+                        <FormLabel>Nombre Completo</FormLabel>
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
@@ -213,14 +219,14 @@ export default function UsersPage() {
                     name="department"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Department</FormLabel>
+                        <FormLabel>Departamento</FormLabel>
                         <Select
                           onValueChange={field.onChange}
                           defaultValue={field.value}
                         >
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select department" />
+                              <SelectValue placeholder="Seleccionar departamento" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -240,19 +246,19 @@ export default function UsersPage() {
                     name="role"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Role</FormLabel>
+                        <FormLabel>Rol</FormLabel>
                         <Select
                           onValueChange={field.onChange}
                           defaultValue={field.value}
                         >
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select role" />
+                              <SelectValue placeholder="Seleccionar rol" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="employee">Employee</SelectItem>
-                            <SelectItem value="admin">Administrator</SelectItem>
+                            <SelectItem value="employee">Empleado</SelectItem>
+                            <SelectItem value="admin">Administrador</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -265,7 +271,7 @@ export default function UsersPage() {
                       name="password"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Password</FormLabel>
+                          <FormLabel>Contraseña</FormLabel>
                           <FormControl>
                             <Input type="password" {...field} />
                           </FormControl>
@@ -276,10 +282,10 @@ export default function UsersPage() {
                   )}
                   <Button type="submit" className="w-full">
                     {mutation.isPending
-                      ? "Saving..."
+                      ? "Guardando..."
                       : editingUser
-                      ? "Update User"
-                      : "Add User"}
+                      ? "Actualizar Usuario"
+                      : "Agregar Usuario"}
                   </Button>
                 </form>
               </Form>
@@ -291,11 +297,11 @@ export default function UsersPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Full Name</TableHead>
-                <TableHead>Username</TableHead>
-                <TableHead>Department</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead className="w-[150px]">Actions</TableHead>
+                <TableHead>Nombre Completo</TableHead>
+                <TableHead>Usuario</TableHead>
+                <TableHead>Departamento</TableHead>
+                <TableHead>Rol</TableHead>
+                <TableHead className="w-[150px]">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -312,7 +318,7 @@ export default function UsersPage() {
                           : "bg-secondary text-secondary-foreground"
                       }`}
                     >
-                      {user.role}
+                      {user.role === "admin" ? "Administrador" : "Empleado"}
                     </span>
                   </TableCell>
                   <TableCell>
@@ -337,7 +343,7 @@ export default function UsersPage() {
                         variant="ghost"
                         size="icon"
                         onClick={() => {
-                          const message = prompt("Enter message for user:");
+                          const message = prompt("Ingrese mensaje para el usuario:");
                           if (message) {
                             sendMessageMutation.mutate({
                               userId: user.id,
@@ -352,7 +358,7 @@ export default function UsersPage() {
                         variant="ghost"
                         size="icon"
                         onClick={() => {
-                          // Navigate to user stats page
+                          // Navegar a la página de estadísticas del usuario
                         }}
                       >
                         <BarChart2 className="h-4 w-4" />
