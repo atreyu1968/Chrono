@@ -19,39 +19,52 @@ export function registerRoutes(app: Express): Server {
 
   // Biometric registration routes
   app.get("/api/auth/biometric/register", async (req, res) => {
+    console.log("[Biometric Register] Starting registration process");
     if (!req.user) {
+      console.log("[Biometric Register] Error: No authenticated user");
       return res.status(401).json({ message: "No authenticated user" });
     }
 
-    const options = await generateRegistrationOptions({
-      rpName: "Chrono",
-      rpID: process.env.RPID || "localhost",
-      userID: req.user.id.toString(),
-      userName: req.user.username,
-      attestationType: "none",
-      authenticatorSelection: {
-        authenticatorAttachment: "platform",
-        userVerification: "preferred",
-      },
-    });
+    try {
+      console.log("[Biometric Register] Generating registration options for user:", req.user.username);
+      const options = await generateRegistrationOptions({
+        rpName: "Chrono",
+        rpID: process.env.RPID || "localhost",
+        userID: req.user.id.toString(),
+        userName: req.user.username,
+        attestationType: "none",
+        authenticatorSelection: {
+          authenticatorAttachment: "platform",
+          userVerification: "preferred",
+        },
+      });
 
-    // Store challenge in session for verification
-    req.session.challenge = options.challenge;
+      // Store challenge in session for verification
+      req.session.challenge = options.challenge;
+      console.log("[Biometric Register] Challenge stored in session");
 
-    res.json(options);
+      res.json(options);
+    } catch (error) {
+      console.error("[Biometric Register] Error generating options:", error);
+      res.status(500).json({ message: "Error generating registration options" });
+    }
   });
 
   app.post("/api/auth/biometric/verify-registration", async (req, res) => {
+    console.log("[Biometric Verify] Starting verification process");
     if (!req.user) {
+      console.log("[Biometric Verify] Error: No authenticated user");
       return res.status(401).json({ message: "No authenticated user" });
     }
 
     try {
       const expectedChallenge = req.session.challenge;
+      console.log("[Biometric Verify] Challenge from session:", expectedChallenge ? "present" : "missing");
       if (!expectedChallenge) {
         return res.status(400).json({ message: "No challenge found" });
       }
 
+      console.log("[Biometric Verify] Verifying registration response");
       const verification = await verifyRegistrationResponse({
         response: req.body,
         expectedChallenge,
@@ -59,27 +72,31 @@ export function registerRoutes(app: Express): Server {
         expectedRPID: process.env.RPID || "localhost",
       });
 
+      console.log("[Biometric Verify] Verification result:", verification.verified);
       if (verification.verified) {
         const credentialPublicKey = verification.registrationInfo?.credentialPublicKey;
         if (!credentialPublicKey) {
+          console.log("[Biometric Verify] Error: No credential public key");
           return res.status(400).json({ message: "No credential public key" });
         }
 
-        // Store the credential
+        console.log("[Biometric Verify] Storing credential for user:", req.user.username);
+        const base64Key = Buffer.from(credentialPublicKey).toString('base64');
         await db
           .update(users)
           .set({
-            biometricToken: Buffer.from(credentialPublicKey).toString('base64'),
+            biometricToken: base64Key,
           })
           .where(eq(users.id, req.user.id));
 
         res.json({ verified: true });
       } else {
+        console.log("[Biometric Verify] Verification failed");
         res.status(400).json({ message: "Verification failed" });
       }
     } catch (error) {
-      console.error("Registration verification error:", error);
-      res.status(400).json({ message: "Registration failed" });
+      console.error("[Biometric Verify] Registration verification error:", error);
+      res.status(400).json({ message: "Registration failed", error: error.message });
     }
   });
 
