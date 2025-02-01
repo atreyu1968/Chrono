@@ -45,12 +45,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import * as React from "react";
+import { FileUploader } from "@/components/ui/file-uploader";
 
 const profileSchema = z.object({
   fullName: z.string().min(1, "El nombre completo es requerido"),
   email: z.string().email("Email inválido"),
   phone: z.string().optional(),
-  avatar: z.string().optional(),
   currentPassword: z.string().optional(),
   newPassword: z.string().min(6, "La contraseña debe tener al menos 6 caracteres").optional(),
   confirmPassword: z.string().optional(),
@@ -73,6 +74,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [location] = useLocation();
   const { toast } = useToast();
+    const [avatarFile, setAvatarFile] = React.useState<File | null>(null);
+    const [avatarPreview, setAvatarPreview] = React.useState<string | null>(user?.avatar || null);
+
 
   // Get sidebar state from user settings
   const { data: settings } = useQuery({
@@ -91,13 +95,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     },
   });
 
+    const handleFileChange = (file: File) => {
+        setAvatarFile(file);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setAvatarPreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+    };
+
+
   const profileForm = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
       fullName: user?.fullName || "",
       email: user?.email || "",
       phone: user?.phone || "",
-      avatar: user?.avatar || "",
       currentPassword: "",
       newPassword: "",
       confirmPassword: "",
@@ -105,9 +118,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   });
 
   const profileMutation = useMutation({
-    mutationFn: async (values: z.infer<typeof profileSchema>) => {
-      return apiRequest("PATCH", "/api/user/profile", values);
-    },
+      mutationFn: async (values: z.infer<typeof profileSchema>) => {
+          if (avatarFile) {
+              const formData = new FormData();
+              formData.append('avatar', avatarFile);
+              formData.append('data', JSON.stringify(values));
+              return apiRequest("PATCH", "/api/user/profile", formData, {
+                  headers: {
+                      'Content-Type': 'multipart/form-data',
+                  },
+              });
+          }
+          return apiRequest("PATCH", "/api/user/profile", values);
+      },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       setIsProfileOpen(false);
@@ -225,6 +248,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </DialogHeader>
               <Form {...profileForm}>
                 <form onSubmit={profileForm.handleSubmit((values) => profileMutation.mutate(values))} className="space-y-4">
+                      <div className="flex flex-col items-center mb-6">
+                        <Avatar className="h-24 w-24">
+                            <AvatarImage src={avatarPreview || user?.avatar} />
+                            <AvatarFallback>
+                                {user?.fullName?.split(" ").map(n => n[0]).join("")}
+                            </AvatarFallback>
+                        </Avatar>
+                        <FileUploader
+                            onFileSelect={handleFileChange}
+                            accept="image/*"
+                            className="mt-4"
+                        />
+                    </div>
                   <FormField
                     control={profileForm.control}
                     name="fullName"
@@ -264,19 +300,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={profileForm.control}
-                    name="avatar"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>URL del Avatar</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  
 
                   <div className="space-y-4 pt-4 border-t">
                     <h4 className="font-medium">Cambiar Contraseña</h4>

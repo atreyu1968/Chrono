@@ -5,17 +5,72 @@ import { setupWebSocket } from "./websocket";
 import { db } from "@db";
 import { locations, attendance, messages, users, userSettings } from "@db/schema";
 import { eq, and, gte, lte, isNull } from "drizzle-orm";
-import { 
-  generateAuthenticationOptions, 
-  generateRegistrationOptions,
-  verifyAuthenticationResponse,
-  verifyRegistrationResponse 
-} from "@simplewebauthn/server";
+import fileUpload from "express-fileupload";
+import path from "path";
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
   const httpServer = createServer(app);
   setupWebSocket(httpServer);
+
+  // Setup file upload middleware
+  app.use(fileUpload({
+    createParentPath: true,
+    limits: {
+      fileSize: 5 * 1024 * 1024 // 5MB max file size
+    },
+    abortOnLimit: true,
+  }));
+
+  // Profile update route with avatar upload
+  app.patch("/api/user/profile", async (req, res) => {
+    if (!req.user) return res.sendStatus(401);
+
+    try {
+      let updateData = req.body;
+      let avatarUrl = req.user.avatar;
+
+      // Handle file upload if present
+      if (req.files && req.files.avatar) {
+        const avatar = req.files.avatar;
+        if (Array.isArray(avatar)) {
+          return res.status(400).json({ message: "Solo se permite un archivo" });
+        }
+
+        // Validate file type
+        if (!avatar.mimetype.startsWith('image/')) {
+          return res.status(400).json({ message: "Solo se permiten imágenes" });
+        }
+
+        const uploadDir = path.join(process.cwd(), 'uploads', 'avatars');
+        const fileName = `avatar_${req.user.id}_${Date.now()}${path.extname(avatar.name)}`;
+        const filePath = path.join(uploadDir, fileName);
+
+        await avatar.mv(filePath);
+        avatarUrl = `/uploads/avatars/${fileName}`;
+      }
+
+      // Parse form data if it's a multipart request
+      if (typeof updateData === 'string') {
+        updateData = JSON.parse(updateData);
+      }
+
+      // Update user profile
+      const [updatedUser] = await db
+        .update(users)
+        .set({
+          ...updateData,
+          avatar: avatarUrl,
+        })
+        .where(eq(users.id, req.user.id))
+        .returning();
+
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      res.status(500).json({ message: "Error al actualizar el perfil" });
+    }
+  });
 
   // Biometric registration routes
   app.get("/api/auth/biometric/register", async (req, res) => {
