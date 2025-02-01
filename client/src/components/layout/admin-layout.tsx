@@ -38,7 +38,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import logo from "@/assets/images/logo.png";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
@@ -204,7 +203,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <SheetContent side="left" className="w-64">
                 <div className="mt-8">
                   <div className="flex items-center gap-2 mb-6">
-                    <img src="/logo solo.png" alt="Logo" className="h-8" />
+                    <img src="/src/assets/images/logo solo.png" alt="Logo" className="h-8" />
                     <span className="text-xl font-bold">Chrono</span>
                     <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(false)} className="ml-auto">
                       <X className="h-5 w-5" />
@@ -215,7 +214,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </SheetContent>
             </Sheet>
             <div className="hidden lg:flex items-center gap-2">
-              <img src="/logo solo.png" alt="Logo" className="h-8" />
+              <img src="/src/assets/images/logo solo.png" alt="Logo" className="h-8" />
               <span className="text-xl font-bold">Chrono</span>
             </div>
             <h1 className="text-xl font-bold text-white">Panel de Administración</h1>
