@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { PlusCircle, Edit2, Trash2 } from "lucide-react";
+import { PlusCircle, Edit2, Trash2, MapPin } from "lucide-react";
 import AdminLayout from "@/components/layout/admin-layout";
 import { Button } from "@/components/ui/button";
 import {
@@ -104,11 +104,16 @@ export default function LocationsPage() {
     mutation.mutate(values);
   };
 
+  const openInMaps = (location: SelectLocation) => {
+    const mapsUrl = `https://www.google.com/maps?q=${location.latitude},${location.longitude}`;
+    window.open(mapsUrl, '_blank');
+  };
+
   return (
     <AdminLayout>
       <div className="p-6">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Work Locations</h1>
+          <h1 className="text-3xl font-bold text-primary">Centros de Trabajo</h1>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -158,10 +163,10 @@ export default function LocationsPage() {
                         <FormItem>
                           <FormLabel>Latitude</FormLabel>
                           <FormControl>
-                            <Input 
-                              type="number" 
-                              step="any" 
-                              {...field} 
+                            <Input
+                              type="number"
+                              step="any"
+                              {...field}
                               onChange={e => field.onChange(parseFloat(e.target.value))}
                             />
                           </FormControl>
@@ -176,9 +181,9 @@ export default function LocationsPage() {
                         <FormItem>
                           <FormLabel>Longitude</FormLabel>
                           <FormControl>
-                            <Input 
-                              type="number" 
-                              step="any" 
+                            <Input
+                              type="number"
+                              step="any"
                               {...field}
                               onChange={e => field.onChange(parseFloat(e.target.value))}
                             />
@@ -195,10 +200,10 @@ export default function LocationsPage() {
                       <FormItem>
                         <FormLabel>Check-in Radius (meters)</FormLabel>
                         <FormControl>
-                          <Input 
-                            type="number" 
-                            min="100" 
-                            max="2000" 
+                          <Input
+                            type="number"
+                            min="100"
+                            max="2000"
                             {...field}
                             onChange={e => field.onChange(parseInt(e.target.value))}
                           />
@@ -211,8 +216,8 @@ export default function LocationsPage() {
                     {mutation.isPending
                       ? "Saving..."
                       : editingLocation
-                      ? "Update Location"
-                      : "Add Location"}
+                        ? "Update Location"
+                        : "Add Location"}
                   </Button>
                 </form>
               </Form>
@@ -223,21 +228,34 @@ export default function LocationsPage() {
         <div className="bg-white rounded-lg shadow">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Address</TableHead>
-                <TableHead>Coordinates</TableHead>
-                <TableHead>Radius (m)</TableHead>
-                <TableHead className="w-[100px]">Actions</TableHead>
+              <TableRow className="bg-primary/5">
+                <TableHead>Nombre</TableHead>
+                <TableHead>Dirección</TableHead>
+                <TableHead>Coordenadas</TableHead>
+                <TableHead>Radio (m)</TableHead>
+                <TableHead className="w-[100px]">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {locations?.map((location) => (
                 <TableRow key={location.id}>
-                  <TableCell className="font-medium">{location.name}</TableCell>
-                  <TableCell>{location.address}</TableCell>
+                  <TableCell className="font-medium text-primary">
+                    {location.name}
+                  </TableCell>
                   <TableCell>
-                    {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
+                    <Button
+                      variant="link"
+                      className="p-0 h-auto font-normal text-left hover:text-primary"
+                      onClick={() => openInMaps(location)}
+                    >
+                      <MapPin className="h-4 w-4 inline-block mr-1" />
+                      {location.address}
+                    </Button>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-muted-foreground">
+                      {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
+                    </span>
                   </TableCell>
                   <TableCell>{location.radius}</TableCell>
                   <TableCell>
@@ -256,9 +274,9 @@ export default function LocationsPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="text-red-600"
+                        className="text-destructive hover:text-destructive/90"
                         onClick={() => {
-                          if (confirm("Are you sure you want to delete this location?")) {
+                          if (confirm("¿Estás seguro de que quieres eliminar esta ubicación?")) {
                             deleteMutation.mutate(location.id);
                           }
                         }}
