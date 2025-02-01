@@ -10,6 +10,7 @@ import AdminDashboard from "@/pages/admin/dashboard";
 import AdminLocations from "@/pages/admin/locations";
 import AdminUsers from "@/pages/admin/users";
 import EmployeeCheckIn from "@/pages/employee/check-in";
+import EmployeeSettings from "@/pages/employee/settings";
 import { useAuth } from "@/hooks/use-auth";
 
 function Router() {
@@ -28,6 +29,7 @@ function Router() {
       <ProtectedRoute path="/admin/locations" component={AdminLocations} requireAdmin />
       <ProtectedRoute path="/admin/users" component={AdminUsers} requireAdmin />
       <ProtectedRoute path="/check-in" component={EmployeeCheckIn} />
+      <ProtectedRoute path="/settings" component={EmployeeSettings} />
       <Route component={NotFound} />
     </Switch>
   );
