@@ -9,6 +9,7 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  Calendar,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -42,6 +43,7 @@ export default function EmployeeLayout({ children }: { children: React.ReactNode
 
   const menuItems = [
     { icon: Clock, label: "Fichar", href: "/check-in" },
+    { icon: Calendar, label: "Asistencia", href: "/attendance" },
     { icon: MessageSquare, label: "Mensajes", href: "/messages" },
     { icon: Settings, label: "Configuración", href: "/settings" },
   ];

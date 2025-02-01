@@ -9,19 +9,56 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/images/logo.png";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useToast } from "@/hooks/use-toast";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
+const profileSchema = z.object({
+  fullName: z.string().min(1, "El nombre completo es requerido"),
+  email: z.string().email("Email inválido"),
+  phone: z.string().optional(),
+  avatar: z.string().optional(),
+});
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { logoutMutation } = useAuth();
+  const { user, logoutMutation } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [location] = useLocation();
+  const { toast } = useToast();
 
   // Get sidebar state from user settings
   const { data: settings } = useQuery({
@@ -37,6 +74,36 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/user/settings"] });
+    },
+  });
+
+  const profileForm = useForm<z.infer<typeof profileSchema>>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: {
+      fullName: user?.fullName || "",
+      email: user?.email || "",
+      phone: user?.phone || "",
+      avatar: user?.avatar || "",
+    },
+  });
+
+  const profileMutation = useMutation({
+    mutationFn: async (values: z.infer<typeof profileSchema>) => {
+      return apiRequest("PATCH", "/api/user/profile", values);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      setIsProfileOpen(false);
+      toast({
+        title: "Perfil actualizado correctamente",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -107,6 +174,99 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <img src={logo} alt="Logo" className="h-8 hidden lg:block" />
             <h1 className="text-xl font-bold">Panel de Administración</h1>
           </div>
+
+          {/* User Profile */}
+          <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="gap-2 text-primary-foreground">
+                  <Avatar className="h-6 w-6">
+                    <AvatarImage src={user?.avatar} />
+                    <AvatarFallback>
+                      {user?.fullName?.split(" ").map(n => n[0]).join("")}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col items-start">
+                    <span className="text-sm font-medium">{user?.fullName}</span>
+                    <span className="text-xs opacity-90">Administrador</span>
+                  </div>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DialogTrigger asChild>
+                  <DropdownMenuItem>
+                    <User className="mr-2 h-4 w-4" />
+                    Editar Perfil
+                  </DropdownMenuItem>
+                </DialogTrigger>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Editar Perfil</DialogTitle>
+              </DialogHeader>
+              <Form {...profileForm}>
+                <form onSubmit={profileForm.handleSubmit((values) => profileMutation.mutate(values))} className="space-y-4">
+                  <FormField
+                    control={profileForm.control}
+                    name="fullName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nombre Completo</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={profileForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input {...field} type="email" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={profileForm.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Teléfono</FormLabel>
+                        <FormControl>
+                          <Input {...field} type="tel" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={profileForm.control}
+                    name="avatar"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>URL del Avatar</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="submit" className="w-full">
+                    {profileMutation.isPending ? "Guardando..." : "Guardar Cambios"}
+                  </Button>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
         </div>
       </nav>
 
