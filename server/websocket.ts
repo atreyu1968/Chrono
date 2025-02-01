@@ -5,7 +5,8 @@ export function setupWebSocket(server: Server) {
   const wss = new WebSocketServer({ 
     server,
     path: "/ws",
-    clientTracking: true 
+    clientTracking: true,
+    perMessageDeflate: false // Deshabilitar la compresión para mayor compatibilidad
   });
 
   wss.on("connection", (ws: WebSocket) => {

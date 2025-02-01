@@ -6,10 +6,9 @@ export function useWebSocket(onMessage: (data: any) => void) {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Usar la URL actual del navegador para construir la URL del WebSocket
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.host;
-    const wsUrl = `${protocol}//${host}/ws`;
+    // En Replit, usamos la URL completa del host
+    const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`;
+    console.log('Intentando conectar a:', wsUrl);
 
     function connect() {
       try {
