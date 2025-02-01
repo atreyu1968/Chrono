@@ -18,7 +18,7 @@ import type { SelectAttendance } from "@db/schema";
 export default function AttendancePage() {
   const [date, setDate] = useState<Date>(new Date());
   const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
-  const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+  const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59);
 
   const { data: attendance } = useQuery<SelectAttendance[]>({
     queryKey: [
@@ -30,10 +30,11 @@ export default function AttendancePage() {
     ],
   });
 
-  // Crear un mapa de fechas con registros
   const attendanceDates = attendance?.reduce((acc, record) => {
-    const date = new Date(record.checkInTime).toDateString();
-    acc[date] = record;
+    if (record.checkInTime) {
+      const date = new Date(record.checkInTime).toDateString();
+      acc[date] = record;
+    }
     return acc;
   }, {} as Record<string, SelectAttendance>);
 
