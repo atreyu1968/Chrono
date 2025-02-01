@@ -5,11 +5,80 @@ import { setupWebSocket } from "./websocket";
 import { db } from "@db";
 import { locations, attendance, messages, users, userSettings } from "@db/schema";
 import { eq, and, gte, lte, isNull } from "drizzle-orm";
+import { generateAuthenticationOptions, verifyAuthenticationResponse } from "@simplewebauthn/server";
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
   const httpServer = createServer(app);
   setupWebSocket(httpServer);
+
+  // Biometric authentication routes
+  app.get("/api/auth/biometric/challenge", async (req, res) => {
+    if (!req.user?.biometricToken) {
+      return res.status(400).json({ message: "No biometric token registered" });
+    }
+
+    const options = await generateAuthenticationOptions({
+      allowCredentials: [{
+        id: Buffer.from(req.user.biometricToken, 'base64'),
+        type: 'public-key',
+      }],
+      userVerification: "preferred",
+    });
+
+    // Store challenge in session for verification
+    req.session.challenge = options.challenge;
+
+    res.json(options);
+  });
+
+  app.post("/api/auth/biometric/verify", async (req, res) => {
+    try {
+      const expectedChallenge = req.session.challenge;
+      if (!expectedChallenge) {
+        return res.status(400).json({ message: "No challenge found" });
+      }
+
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.biometricToken, req.body.id))
+        .limit(1);
+
+      if (!user) {
+        return res.status(400).json({ message: "Invalid credential" });
+      }
+
+      const verification = await verifyAuthenticationResponse({
+        response: req.body,
+        expectedChallenge,
+        expectedOrigin: process.env.ORIGIN || "http://localhost:3000",
+        expectedRPID: process.env.RPID || "localhost",
+        authenticator: {
+          credentialPublicKey: Buffer.from(user.biometricToken, 'base64'),
+          credentialID: Buffer.from(req.body.id, 'base64'),
+          counter: 0,
+        },
+      });
+
+      if (verification.verified) {
+        // Log the user in
+        await new Promise((resolve, reject) => {
+          req.login(user, (err) => {
+            if (err) reject(err);
+            else resolve(user);
+          });
+        });
+
+        res.json(user);
+      } else {
+        res.status(400).json({ message: "Verification failed" });
+      }
+    } catch (error) {
+      console.error("Biometric verification error:", error);
+      res.status(400).json({ message: "Verification failed" });
+    }
+  });
 
   // Users routes (admin only)
   app.get("/api/users", async (req, res) => {
@@ -83,7 +152,7 @@ export function registerRoutes(app: Express): Server {
 
     const now = new Date();
     // TODO: Implementar lógica para determinar si es tarde basado en horarios configurados
-    const status = "present"; 
+    const status = "present";
 
     const checkIn = await db.insert(attendance).values({
       userId: req.user.id,

@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Fingerprint } from "lucide-react";
 import logo from "@/assets/images/logo.png";
 
 const registerSchema = z.object({
@@ -29,7 +30,7 @@ const loginSchema = z.object({
 });
 
 export default function AuthPage() {
-  const { loginMutation, registerMutation } = useAuth();
+  const { loginMutation, registerMutation, biometricLoginMutation } = useAuth();
   const [, setLocation] = useLocation();
 
   const loginForm = useForm<z.infer<typeof loginSchema>>({
@@ -62,6 +63,15 @@ export default function AuthPage() {
     setLocation("/");
   };
 
+  const onBiometricLogin = async () => {
+    try {
+      await biometricLoginMutation.mutateAsync();
+      setLocation("/");
+    } catch (error) {
+      // El error ya se maneja en el mutation
+    }
+  };
+
   return (
     <div className="min-h-screen grid md:grid-cols-2">
       <div className="flex flex-col items-center justify-center p-8">
@@ -81,39 +91,69 @@ export default function AuthPage() {
                   <TabsTrigger value="register">Registrarse</TabsTrigger>
                 </TabsList>
                 <TabsContent value="login">
-                  <Form {...loginForm}>
-                    <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
-                      <FormField
-                        control={loginForm.control}
-                        name="username"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Usuario</FormLabel>
-                            <FormControl>
-                              <Input {...field} placeholder="Ingrese su usuario" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={loginForm.control}
-                        name="password"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Contraseña</FormLabel>
-                            <FormControl>
-                              <Input type="password" {...field} placeholder="Ingrese su contraseña" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <Button type="submit" className="w-full">
-                        {loginMutation.isPending ? "Iniciando sesión..." : "Iniciar Sesión"}
-                      </Button>
-                    </form>
-                  </Form>
+                  <div className="space-y-4">
+                    <Form {...loginForm}>
+                      <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
+                        <FormField
+                          control={loginForm.control}
+                          name="username"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Usuario</FormLabel>
+                              <FormControl>
+                                <Input {...field} placeholder="Ingrese su usuario" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={loginForm.control}
+                          name="password"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Contraseña</FormLabel>
+                              <FormControl>
+                                <Input type="password" {...field} placeholder="Ingrese su contraseña" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <Button type="submit" className="w-full">
+                          {loginMutation.isPending ? "Iniciando sesión..." : "Iniciar Sesión"}
+                        </Button>
+                      </form>
+                    </Form>
+
+                    <div className="relative">
+                      <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t" />
+                      </div>
+                      <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-background px-2 text-muted-foreground">
+                          O continúe con
+                        </span>
+                      </div>
+                    </div>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      onClick={onBiometricLogin}
+                      disabled={biometricLoginMutation.isPending}
+                    >
+                      {biometricLoginMutation.isPending ? (
+                        "Verificando..."
+                      ) : (
+                        <>
+                          <Fingerprint className="mr-2 h-4 w-4" />
+                          Autenticación Biométrica
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </TabsContent>
                 <TabsContent value="register">
                   <Form {...registerForm}>

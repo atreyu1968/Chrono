@@ -7,6 +7,7 @@ import {
 import type { SelectUser, InsertUser } from "@db/schema";
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { startAuthentication } from "@simplewebauthn/browser";
 
 type AuthContextType = {
   user: SelectUser | null;
@@ -15,6 +16,7 @@ type AuthContextType = {
   loginMutation: UseMutationResult<SelectUser, Error, LoginData>;
   logoutMutation: UseMutationResult<void, Error, void>;
   registerMutation: UseMutationResult<SelectUser, Error, InsertUser>;
+  biometricLoginMutation: UseMutationResult<SelectUser, Error, void>;
 };
 
 type LoginData = Pick<InsertUser, "username" | "password">;
@@ -41,7 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     },
     onError: (error: Error) => {
       toast({
-        title: "Login failed",
+        title: "Error de inicio de sesión",
         description: error.message,
         variant: "destructive",
       });
@@ -58,7 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     },
     onError: (error: Error) => {
       toast({
-        title: "Registration failed",
+        title: "Error de registro",
         description: error.message,
         variant: "destructive",
       });
@@ -74,7 +76,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     },
     onError: (error: Error) => {
       toast({
-        title: "Logout failed",
+        title: "Error al cerrar sesión",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const biometricLoginMutation = useMutation({
+    mutationFn: async () => {
+      // 1. Get challenge from server
+      const optionsRes = await apiRequest("GET", "/api/auth/biometric/challenge");
+      const options = await optionsRes.json();
+
+      // 2. Perform biometric authentication
+      const credential = await startAuthentication(options);
+
+      // 3. Verify with server
+      const verifyRes = await apiRequest("POST", "/api/auth/biometric/verify", credential);
+      return await verifyRes.json();
+    },
+    onSuccess: (user: SelectUser) => {
+      queryClient.setQueryData(["/api/user"], user);
+      toast({
+        title: "Autenticación biométrica exitosa",
+        description: "Has iniciado sesión correctamente",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error de autenticación biométrica",
         description: error.message,
         variant: "destructive",
       });
@@ -90,6 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loginMutation,
         logoutMutation,
         registerMutation,
+        biometricLoginMutation,
       }}
     >
       {children}
