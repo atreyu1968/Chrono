@@ -7,13 +7,14 @@ export const users = pgTable("users", {
   username: text("username").unique().notNull(),
   password: text("password").notNull(),
   role: text("role", { enum: ["admin", "employee"] }).default("employee").notNull(),
+  employeeType: text("employee_type", { 
+    enum: ["profesor", "pas"] 
+  }).default("pas").notNull(),
+  medusaUser: text("medusa_user").unique(),
   fullName: text("full_name").notNull(),
-  email: text("email").default("user@example.com").notNull(),
+  email: text("email").unique().notNull(),
   phone: text("phone"),
   department: text("department"),
-  employeeType: text("employee_type", { 
-    enum: ["full_time", "part_time", "contractor", "intern"] 
-  }).default("full_time").notNull(),
   avatar: text("avatar_url"),
   emergencyContact: text("emergency_contact"),
   emergencyPhone: text("emergency_phone"),

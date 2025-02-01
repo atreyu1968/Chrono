@@ -49,10 +49,8 @@ import {
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 const employeeTypes = [
-  "full_time",
-  "part_time",
-  "contractor",
-  "intern"
+  "profesor",
+  "pas",
 ] as const;
 
 const userSchema = z.object({
@@ -61,13 +59,23 @@ const userSchema = z.object({
   email: z.string().email("Email inválido"),
   phone: z.string().optional(),
   department: z.string().min(1, "El departamento es requerido"),
-  employeeType: z.enum(employeeTypes),
+  employeeType: z.enum(["profesor", "pas"]),
+  medusaUser: z.string().optional(),
   role: z.enum(["admin", "employee"]),
   avatar: z.string().optional(),
   emergencyContact: z.string().optional(),
   emergencyPhone: z.string().optional(),
   password: z.string().min(6).optional(),
+}).refine(data => {
+  if (data.employeeType === "profesor" && !data.medusaUser) {
+    return false;
+  }
+  return true;
+}, {
+  message: "El usuario Medusa es requerido para profesores",
+  path: ["medusaUser"],
 });
+
 
 const departments = [
   "Ingeniería",
@@ -105,6 +113,7 @@ export default function UsersPage() {
       phone: editingUser.phone || '',
       department: editingUser.department || '',
       employeeType: editingUser.employeeType,
+      medusaUser: editingUser.medusaUser || '',
       role: editingUser.role,
       avatar: editingUser.avatar || '',
       emergencyContact: editingUser.emergencyContact || '',
@@ -115,7 +124,8 @@ export default function UsersPage() {
       email: "",
       phone: "",
       department: "",
-      employeeType: "full_time",
+      employeeType: "profesor",
+      medusaUser: "",
       role: "employee",
       avatar: "",
       emergencyContact: "",
@@ -318,16 +328,29 @@ export default function UsersPage() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="full_time">Tiempo Completo</SelectItem>
-                              <SelectItem value="part_time">Medio Tiempo</SelectItem>
-                              <SelectItem value="contractor">Contratista</SelectItem>
-                              <SelectItem value="intern">Practicante</SelectItem>
+                              <SelectItem value="profesor">Profesor</SelectItem>
+                              <SelectItem value="pas">PAS</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
+                    {form.watch("employeeType") === "profesor" && (
+                      <FormField
+                        control={form.control}
+                        name="medusaUser"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Usuario Medusa</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
                   <FormField
                     control={form.control}
                     name="role"
@@ -475,6 +498,7 @@ export default function UsersPage() {
                              phone: user.phone || '',
                             department: user.department,
                             employeeType: user.employeeType,
+                            medusaUser: user.medusaUser || '',
                             role: user.role,
                             avatar: user.avatar || '',
                             emergencyContact: user.emergencyContact || '',

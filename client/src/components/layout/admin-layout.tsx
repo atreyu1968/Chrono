@@ -51,6 +51,20 @@ const profileSchema = z.object({
   email: z.string().email("Email inválido"),
   phone: z.string().optional(),
   avatar: z.string().optional(),
+  currentPassword: z.string().optional(),
+  newPassword: z.string().min(6, "La contraseña debe tener al menos 6 caracteres").optional(),
+  confirmPassword: z.string().optional(),
+}).refine(data => {
+  if (data.newPassword && !data.currentPassword) {
+    return false;
+  }
+  if (data.newPassword !== data.confirmPassword) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Las contraseñas no coinciden o falta la contraseña actual",
+  path: ["confirmPassword"],
 });
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -84,6 +98,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       email: user?.email || "",
       phone: user?.phone || "",
       avatar: user?.avatar || "",
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
     },
   });
 
@@ -260,6 +277,50 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                       </FormItem>
                     )}
                   />
+
+                  <div className="space-y-4 pt-4 border-t">
+                    <h4 className="font-medium">Cambiar Contraseña</h4>
+                    <FormField
+                      control={profileForm.control}
+                      name="currentPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Contraseña Actual</FormLabel>
+                          <FormControl>
+                            <Input type="password" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={profileForm.control}
+                      name="newPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nueva Contraseña</FormLabel>
+                          <FormControl>
+                            <Input type="password" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={profileForm.control}
+                      name="confirmPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Confirmar Nueva Contraseña</FormLabel>
+                          <FormControl>
+                            <Input type="password" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
                   <Button type="submit" className="w-full">
                     {profileMutation.isPending ? "Guardando..." : "Guardar Cambios"}
                   </Button>
