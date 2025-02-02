@@ -106,7 +106,7 @@ export default function HolidaysPage() {
   return (
     <AdminLayout>
       <div className="container mx-auto py-8">
-        <div className="grid gap-8 md:grid-cols-[5fr,1fr]">
+        <div className="grid gap-8 md:grid-cols-[3fr,1fr]">
           <Card>
             <CardHeader>
               <CardTitle>Calendario de Días Festivos</CardTitle>
@@ -120,9 +120,9 @@ export default function HolidaysPage() {
                 selected={selectedDate}
                 onSelect={setSelectedDate}
                 locale={es}
-                numberOfMonths={6}
+                numberOfMonths={3}
                 showOutsideDays={false}
-                className="rounded-md border w-full [&_.rdp-months]:grid [&_.rdp-months]:grid-cols-3 [&_.rdp-months]:grid-rows-2 [&_.rdp-months]:gap-4 [&_.rdp-month]:w-full [&_.rdp-table]:w-full [&_.rdp-cell]:p-0 [&_.rdp-button]:w-8 [&_.rdp-button]:h-8 [&_.rdp-caption]:mb-2 [&_.rdp-nav]:mb-1 [&_.rdp-head_cell]:text-xs [&_.rdp-day]:text-sm"
+                className="rounded-md border w-full [&_.rdp-months]:grid [&_.rdp-months]:grid-cols-3 [&_.rdp-months]:gap-6 [&_.rdp-month]:w-full [&_.rdp-table]:w-full [&_.rdp-cell]:p-0 [&_.rdp-button]:w-10 [&_.rdp-button]:h-10 [&_.rdp-caption]:mb-4 [&_.rdp-nav]:mb-2 [&_.rdp-head_cell]:text-sm [&_.rdp-day]:text-sm"
                 modifiers={{
                   holiday: (date) => {
                     const dateStr = format(date, "yyyy-MM-dd");
