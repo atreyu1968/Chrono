@@ -693,8 +693,17 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/attendance", async (req, res) => {
     if (req.user?.role !== "admin") return res.sendStatus(403);
 
-    const { userId, startDate, endDate } = req.query;
+    const { userId, departmentId, locationId, startDate, endDate } = req.query;
     try {
+      console.log("[Backend] Attendance request received:", {
+        userId,
+        departmentId,
+        locationId,
+        startDate,
+        endDate,
+        userRole: req.user?.role
+      });
+
       let query = db
         .select({
           id: attendance.id,
@@ -709,6 +718,8 @@ export function registerRoutes(app: Express): Server {
             id: users.id,
             fullName: users.fullName,
             username: users.username,
+            department: users.department,
+            departmentId: users.departmentId
           }
         })
         .from(attendance)
@@ -718,8 +729,22 @@ export function registerRoutes(app: Express): Server {
       // Aplicar filtros si se proporcionan
       const filters = [];
 
-      if (userId) {
-        filters.push(eq(attendance.userId, parseInt(userId as string)));
+      if (userId && !isNaN(Number(userId))) {
+        const userIdNum = Number(userId);
+        console.log("[Backend] Applying user filter:", userIdNum);
+        filters.push(eq(attendance.userId, userIdNum));
+      }
+
+      if (departmentId && !isNaN(Number(departmentId))) {
+        const departmentIdNum = Number(departmentId);
+        console.log("[Backend] Applying department filter:", departmentIdNum);
+        filters.push(eq(users.departmentId, departmentIdNum));
+      }
+
+      if (locationId && !isNaN(Number(locationId))) {
+        const locationIdNum = Number(locationId);
+        console.log("[Backend] Applying location filter:", locationIdNum);
+        filters.push(eq(attendance.locationId, locationIdNum));
       }
 
       if (startDate) {
@@ -742,8 +767,11 @@ export function registerRoutes(app: Express): Server {
 
       console.log("[Backend] Attendance records query:", {
         userId,
+        departmentId,
+        locationId,
         startDate,
         endDate,
+        filterCount: filters.length,
         recordCount: records.length
       });
 
@@ -754,7 +782,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
   
-
   // También actualizar la ruta de historial para incluir más detalles
   app.get("/api/attendance/history", async (req, res) => {
     if (!req.user) return res.sendStatus(401);
@@ -855,7 +882,7 @@ export function registerRoutes(app: Express): Server {
     today.setHours(0, 0, 0, 0);
 
     const todayAttendance = await db.select()
-      .from(attendance)
+    .from(attendance)
       .where(gte(attendance.checkInTime, today));
 
     // Get last 7 days trend

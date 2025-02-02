@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { SelectAttendance, SelectLocation, SelectUser } from "@db/schema";
+import type { SelectAttendance, SelectLocation, SelectUser, SelectDepartment } from "@db/schema";
 import { DateRange } from "react-day-picker";
 import {
   Popover,
@@ -38,12 +38,22 @@ import {
 } from "@/components/ui/table";
 
 export default function AttendanceRecordsPage() {
-  const [selectedUserId, setSelectedUserId] = useState<string>();
+  const [selectedUserId, setSelectedUserId] = useState<string | undefined>(undefined);
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState<string | undefined>(undefined);
+  const [selectedLocationId, setSelectedLocationId] = useState<string | undefined>(undefined);
   const [date, setDate] = useState<DateRange | undefined>();
 
-  // Cargar lista de usuarios
+  // Cargar datos necesarios
   const { data: users } = useQuery<SelectUser[]>({
     queryKey: ["/api/users"],
+  });
+
+  const { data: departments } = useQuery<SelectDepartment[]>({
+    queryKey: ["/api/departments"],
+  });
+
+  const { data: locations } = useQuery<SelectLocation[]>({
+    queryKey: ["/api/locations"],
   });
 
   // Cargar registros de asistencia
@@ -53,7 +63,9 @@ export default function AttendanceRecordsPage() {
     queryKey: [
       "/api/attendance",
       {
-        userId: selectedUserId,
+        userId: selectedUserId ? Number(selectedUserId) : undefined,
+        departmentId: selectedDepartmentId ? Number(selectedDepartmentId) : undefined,
+        locationId: selectedLocationId ? Number(selectedLocationId) : undefined,
         startDate: date?.from ? format(date.from, "yyyy-MM-dd") : undefined,
         endDate: date?.to ? format(date.to, "yyyy-MM-dd") : undefined,
       },
@@ -61,7 +73,9 @@ export default function AttendanceRecordsPage() {
   });
 
   console.log("[Frontend] Query state:", {
-    userId: selectedUserId,
+    userId: selectedUserId ? Number(selectedUserId) : undefined,
+    departmentId: selectedDepartmentId ? Number(selectedDepartmentId) : undefined,
+    locationId: selectedLocationId ? Number(selectedLocationId) : undefined,
     startDate: date?.from ? format(date.from, "yyyy-MM-dd") : undefined,
     endDate: date?.to ? format(date.to, "yyyy-MM-dd") : undefined,
     recordCount: attendance?.length
@@ -82,11 +96,15 @@ export default function AttendanceRecordsPage() {
             <CardTitle>Filtros</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-4">
+            <div className="flex flex-wrap gap-4">
+              {/* Filtro de Usuario */}
               <div className="w-[200px]">
                 <Select
                   value={selectedUserId}
-                  onValueChange={setSelectedUserId}
+                  onValueChange={(value) => {
+                    console.log("[Frontend] Selected user:", value);
+                    setSelectedUserId(value);
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Todos los usuarios" />
@@ -101,6 +119,51 @@ export default function AttendanceRecordsPage() {
                 </Select>
               </div>
 
+              {/* Filtro de Departamento */}
+              <div className="w-[200px]">
+                <Select
+                  value={selectedDepartmentId}
+                  onValueChange={(value) => {
+                    console.log("[Frontend] Selected department:", value);
+                    setSelectedDepartmentId(value);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos los departamentos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments?.map((department) => (
+                      <SelectItem key={department.id} value={String(department.id)}>
+                        {department.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Filtro de Centro */}
+              <div className="w-[200px]">
+                <Select
+                  value={selectedLocationId}
+                  onValueChange={(value) => {
+                    console.log("[Frontend] Selected location:", value);
+                    setSelectedLocationId(value);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos los centros" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {locations?.map((location) => (
+                      <SelectItem key={location.id} value={String(location.id)}>
+                        {location.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Filtro de Fecha */}
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -155,6 +218,7 @@ export default function AttendanceRecordsPage() {
                     <TableRow>
                       <TableHead>Fecha</TableHead>
                       <TableHead>Usuario</TableHead>
+                      <TableHead>Departamento</TableHead>
                       <TableHead>Centro</TableHead>
                       <TableHead>Entrada</TableHead>
                       <TableHead>Salida</TableHead>
@@ -177,6 +241,7 @@ export default function AttendanceRecordsPage() {
                           </div>
                         </TableCell>
                         <TableCell>{record.user?.fullName}</TableCell>
+                        <TableCell>{record.user?.department}</TableCell>
                         <TableCell>{record.location?.name}</TableCell>
                         <TableCell>
                           {format(new Date(record.checkInTime), "HH:mm")}
@@ -187,15 +252,15 @@ export default function AttendanceRecordsPage() {
                             : "--:--"}
                         </TableCell>
                         <TableCell>
-                          <Badge
-                            variant={
-                              record.status === "present"
-                                ? "default"
-                                : "destructive"
-                            }
-                          >
-                            {record.status === "present" ? "Puntual" : "Retraso"}
-                          </Badge>
+                          {record.status === "present" ? (
+                            <Badge className="bg-green-500 hover:bg-green-600">
+                              Puntual
+                            </Badge>
+                          ) : (
+                            <Badge variant="destructive">
+                              Retraso
+                            </Badge>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -205,7 +270,7 @@ export default function AttendanceRecordsPage() {
             ) : (
               <div className="text-center py-8 text-muted-foreground">
                 <CalendarIcon className="h-8 w-8 mx-auto mb-4 opacity-50" />
-                <p>No hay registros para el período seleccionado</p>
+                <p>No hay registros para los filtros seleccionados</p>
               </div>
             )}
           </CardContent>
