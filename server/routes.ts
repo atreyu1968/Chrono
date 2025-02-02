@@ -667,7 +667,10 @@ export function registerRoutes(app: Express): Server {
               endTime: schedule.endTime,
               enabled: schedule.enabled
             } : null,
-            holiday: holiday || null,
+            holiday: holiday ? {
+              name: holiday.name,
+              type: holiday.type
+            } : null,
             checkInFormatted: format(new Date(record.checkInTime), 'HH:mm'),
             checkOutFormatted: record.checkOutTime 
               ? format(new Date(record.checkOutTime), 'HH:mm') 
