@@ -48,22 +48,19 @@ export default function UserAttendancePage() {
       "/api/attendance/user",
       {
         userId: String(userId),
-        startDate: date?.from?.toISOString(),
-        endDate: date?.to?.toISOString(),
+        startDate: date?.from ? format(date.from, "yyyy-MM-dd") : undefined,
+        endDate: date?.to ? format(date.to, "yyyy-MM-dd") : undefined,
       },
     ],
     enabled: !!userId && !!date?.from && !!date?.to,
   });
 
-  console.log("[Frontend] Attendance query:", {
-    userId,
-    dateRange: {
-      from: date?.from?.toISOString(),
-      to: date?.to?.toISOString()
-    },
-    isLoadingAttendance,
-    recordsCount: attendance?.length
+  console.log("[Frontend] Query parameters:", {
+    userId: String(userId),
+    startDate: date?.from ? format(date.from, "yyyy-MM-dd") : undefined,
+    endDate: date?.to ? format(date.to, "yyyy-MM-dd") : undefined
   });
+
 
   // Group attendance records by date
   const attendanceDates = attendance?.reduce((acc, record) => {

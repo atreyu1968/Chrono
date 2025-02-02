@@ -629,82 +629,41 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Rutas de asistencia para usuarios específicos (admin y el propio usuario)
-  app.get("/api/attendance/user", async (req, res) => {
+    app.get("/api/attendance/user", async (req, res) => {
     if (!req.user) return res.sendStatus(401);
     const { userId, startDate, endDate } = req.query;
 
     try {
-      console.log("[Attendance] Request from user:", {
-        requestingUserId: req.user.id,
-        requestingUserRole: req.user.role,
-        requestedUserId: userId
-      });
-
       // Validar que userId sea un número válido
       const userIdNumber = userId ? parseInt(userId as string) : req.user.id;
       if (isNaN(userIdNumber)) {
-        console.log("[Attendance] Invalid userId:", userId);
         return res.status(400).json({ message: "ID de usuario inválido" });
       }
 
-      // Primero verificar si el usuario existe
-      const targetUser = await db.query.users.findFirst({
-        where: eq(users.id, userIdNumber)
-      });
-
-      if (!targetUser) {
-        console.log("[Attendance] User not found:", userIdNumber);
-        return res.status(404).json({ message: "Usuario no encontrado" });
-      }
-
-      console.log("[Attendance] Authorization check:", {
-        isAdmin: req.user.role === "admin",
-        requestingUserId: req.user.id,
-        targetUserId: userIdNumber,
-        hasAccess: req.user.role === "admin" || userIdNumber === req.user.id
-      });
-
       // Verificar permisos - solo admin o el propio usuario pueden ver los registros
       if (req.user.role !== "admin" && userIdNumber !== req.user.id) {
-        console.log("[Attendance] Permission denied. User role:", req.user.role, "trying to access user:", userIdNumber);
         return res.sendStatus(403);
       }
 
       let start: Date, end: Date;
 
       if (startDate && endDate) {
-        start = new Date(startDate.toString());
-        end = new Date(endDate.toString());
+        start = new Date(startDate as string);
+        end = new Date(endDate as string);
       } else {
         start = startOfMonth(new Date());
         end = endOfMonth(new Date());
       }
 
-      start.setUTCHours(0, 0, 0, 0);
-      end.setUTCHours(23, 59, 59, 999);
-
-      console.log("[Attendance] Query dates:", {
-        start: start.toISOString(),
-        end: end.toISOString(),
-        userIdNumber
+      console.log("[Backend] Query parameters:", {
+        userId: userIdNumber,
+        start: format(start, 'yyyy-MM-dd'),
+        end: format(end, 'yyyy-MM-dd')
       });
 
-      const history = await db
-        .select({
-          id: attendance.id,
-          userId: attendance.userId,
-          locationId: attendance.locationId,
-          checkInTime: attendance.checkInTime,
-          checkOutTime: attendance.checkOutTime,
-          status: attendance.status,
-          location: {
-            id: locations.id,
-            name: locations.name,
-            latitude: locations.latitude,
-            longitude: locations.longitude,
-            radius: locations.radius
-          }
-        })
+      // Consulta directa sin joins inicialmente para verificar
+      const records = await db
+        .select()
         .from(attendance)
         .where(
           and(
@@ -712,21 +671,41 @@ export function registerRoutes(app: Express): Server {
             gte(attendance.checkInTime, start),
             lte(attendance.checkInTime, end)
           )
-        )
-        .leftJoin(locations, eq(attendance.locationId, locations.id))
-        .orderBy(desc(attendance.checkInTime));
+        );
 
-      console.log("[Attendance] Found records:", history.length, "for user:", userIdNumber);
-      console.log("[Attendance] Query parameters:", { 
-        userIdNumber, 
-        start: start.toISOString(), 
-        end: end.toISOString() 
-      });
-      console.log("[Attendance] First record (if any):", history[0]);
+      console.log("[Backend] Found records:", records.length);
 
-      res.json(history);
+      // Si encontramos registros, ahora obtenemos la información de ubicación
+      if (records.length > 0) {
+        const history = await db
+          .select({
+            id: attendance.id,
+            checkInTime: attendance.checkInTime,
+            checkOutTime: attendance.checkOutTime,
+            status: attendance.status,
+            location: {
+              id: locations.id,
+              name: locations.name,
+            }
+          })
+          .from(attendance)
+          .where(
+            and(
+              eq(attendance.userId, userIdNumber),
+              gte(attendance.checkInTime, start),
+              lte(attendance.checkInTime, end)
+            )
+          )
+          .leftJoin(locations, eq(attendance.locationId, locations.id))
+          .orderBy(desc(attendance.checkInTime));
+
+        console.log("[Backend] Processed records with locations:", history.length);
+        res.json(history);
+      } else {
+        res.json([]);
+      }
     } catch (error) {
-      console.error("[Attendance] Error fetching user attendance history:", error);
+      console.error("[Backend] Error:", error);
       res.status(500).json({ message: "Error al obtener el historial de asistencia" });
     }
   });
@@ -901,7 +880,7 @@ if (!req.user) return res.sendStatus(401);
           eq(messages.fromUserId, req.user.id)
         )
       )
-      .leftJoin(users, eq(messages.fromUserId, users.id))
+      .leftJoin(users, eq(messages.fromUserId,users.id))
       .orderBy(messages.sentAt);
 
     res.json(userMessages);
