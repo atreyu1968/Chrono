@@ -445,7 +445,7 @@ export function registerRoutes(app: Express): Server {
       if (holiday) {
         console.log("[Check-in] Holiday found:", holiday.name);
         return res.status(400).json({ 
-          message: "Hoy es festivo", 
+          message: `Hoy es festivo: ${holiday.name} (${holiday.type})`, 
           holiday: {
             name: holiday.name,
             type: holiday.type,
@@ -459,15 +459,24 @@ export function registerRoutes(app: Express): Server {
       const schedule = await db.query.userSchedules.findFirst({
         where: and(
           eq(userSchedules.userId, req.user.id),
-          eq(userSchedules.weekday, weekday),
-          eq(userSchedules.enabled, true)
+          eq(userSchedules.weekday, weekday)
         )
       });
 
       if (!schedule) {
         console.log("[Check-in] No schedule found for user:", req.user.id);
+        const dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
         return res.status(400).json({ 
-          message: "No tienes horario configurado para hoy o el día está deshabilitado"
+          message: `No tienes un horario configurado para los ${dias[weekday]}`,
+          type: "no_schedule"
+        });
+      }
+
+      if (!schedule.enabled) {
+        console.log("[Check-in] Schedule disabled for user:", req.user.id);
+        return res.status(400).json({ 
+          message: `El horario para los ${dias[weekday]} está deshabilitado`,
+          type: "schedule_disabled"
         });
       }
 
@@ -491,7 +500,7 @@ export function registerRoutes(app: Express): Server {
       if (distance > location.radius) {
         console.log("[Check-in] User too far from location. Distance:", distance, "Radius:", location.radius);
         return res.status(400).json({ 
-          message: "No estás dentro del rango permitido para fichar",
+          message: `No estás dentro del rango permitido para fichar (${Math.round(distance)}m del centro, máximo ${location.radius}m)`,
           distance,
           maxRadius: location.radius
         });
