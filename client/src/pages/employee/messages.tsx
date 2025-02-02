@@ -18,6 +18,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import EmployeeLayout from "@/components/layout/employee-layout";
 import { Send } from "lucide-react";
 import type { SelectMessage, SelectUser } from "@db/schema";
+import { cn } from "@/lib/utils";
 
 export default function MessagesPage() {
   const { user } = useAuth();
@@ -35,6 +36,7 @@ export default function MessagesPage() {
   // Obtener mensajes
   const { data: messages } = useQuery<(SelectMessage & { fromUser: SelectUser })[]>({
     queryKey: ["/api/messages"],
+    refetchInterval: 5000, // Refresca cada 5 segundos
   });
 
   // Scroll to bottom when new messages arrive
@@ -44,6 +46,7 @@ export default function MessagesPage() {
 
   // Listen for real-time messages
   useEffect(() => {
+    if (!onMessage) return;
     onMessage((data) => {
       if (data.type === "message") {
         queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
@@ -54,17 +57,19 @@ export default function MessagesPage() {
   // Mutación para enviar mensajes
   const sendMessageMutation = useMutation({
     mutationFn: async () => {
-      if (!selectedUser) return;
+      if (!selectedUser || !newMessage.trim()) return;
       const response = await apiRequest("POST", "/api/messages", {
         toUserId: selectedUser.id,
-        content: newMessage,
+        content: newMessage.trim(),
       });
 
       // Send WebSocket message
-      sendMessage({
-        type: "message",
-        data: response,
-      });
+      if (sendMessage) {
+        sendMessage({
+          type: "message",
+          data: response,
+        });
+      }
 
       return response;
     },
@@ -84,6 +89,11 @@ export default function MessagesPage() {
     },
   });
 
+  const filteredMessages = messages?.filter(m => 
+    (m.fromUserId === user?.id && m.toUserId === selectedUser?.id) ||
+    (m.fromUserId === selectedUser?.id && m.toUserId === user?.id)
+  ) || [];
+
   return (
     <EmployeeLayout>
       <div className="container mx-auto py-8">
@@ -95,10 +105,11 @@ export default function MessagesPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {users?.filter(u => u.id !== user?.id).map((u) => (
-                <div
+                <Button
                   key={u.id}
+                  variant="ghost"
                   className={cn(
-                    "flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 cursor-pointer",
+                    "w-full flex items-center gap-3 justify-start p-2 hover:bg-slate-100",
                     selectedUser?.id === u.id && "bg-slate-100"
                   )}
                   onClick={() => setSelectedUser(u)}
@@ -106,16 +117,16 @@ export default function MessagesPage() {
                   <Avatar>
                     <AvatarImage src={u.avatar || undefined} />
                     <AvatarFallback>
-                      {u.fullName?.split(" ").map(n => n[0]).join("")}
+                      {u.fullName?.split(" ").map(n => n[0]).join("").toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                  <div>
+                  <div className="text-left">
                     <p className="font-medium">{u.fullName}</p>
                     <p className="text-sm text-muted-foreground">
                       {u.role === "admin" ? "Administrador" : "Empleado"}
                     </p>
                   </div>
-                </div>
+                </Button>
               ))}
             </CardContent>
           </Card>
@@ -128,36 +139,34 @@ export default function MessagesPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4 mb-4 max-h-[500px] overflow-y-auto">
-                {messages?.filter(m => 
-                  (m.fromUserId === user?.id && m.toUserId === selectedUser?.id) ||
-                  (m.fromUserId === selectedUser?.id && m.toUserId === user?.id)
-                ).map((message) => (
+              <div className="space-y-4 mb-4 h-[500px] overflow-y-auto">
+                {filteredMessages.map((message) => (
                   <div
                     key={message.id}
-                    className={`flex gap-3 ${
-                      message.fromUserId === user?.id ? "flex-row-reverse" : ""
-                    }`}
+                    className={cn(
+                      "flex gap-3",
+                      message.fromUserId === user?.id && "flex-row-reverse"
+                    )}
                   >
                     <Avatar>
                       <AvatarImage src={message.fromUser.avatar || undefined} />
                       <AvatarFallback>
-                        {message.fromUser.fullName?.split(" ").map(n => n[0]).join("")}
+                        {message.fromUser.fullName?.split(" ").map(n => n[0]).join("").toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div
-                      className={`flex flex-col max-w-[70%] ${
-                        message.fromUserId === user?.id
-                          ? "items-end"
-                          : "items-start"
-                      }`}
+                      className={cn(
+                        "flex flex-col max-w-[70%]",
+                        message.fromUserId === user?.id ? "items-end" : "items-start"
+                      )}
                     >
                       <div
-                        className={`rounded-lg p-3 ${
+                        className={cn(
+                          "rounded-lg p-3",
                           message.fromUserId === user?.id
                             ? "bg-primary text-primary-foreground"
                             : "bg-muted"
-                        }`}
+                        )}
                       >
                         {message.content}
                       </div>
@@ -203,7 +212,4 @@ export default function MessagesPage() {
       </div>
     </EmployeeLayout>
   );
-}
-function cn(...inputs: string[]) {
-  return inputs.filter(Boolean).join(" ");
 }
