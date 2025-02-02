@@ -14,6 +14,7 @@ import AdminDepartments from "@/pages/admin/departments";
 import EmployeeCheckIn from "@/pages/employee/check-in";
 import EmployeeAttendance from "@/pages/employee/attendance";
 import EmployeeSettings from "@/pages/employee/settings";
+import EmployeeMessages from "@/pages/employee/messages";
 import { useAuth } from "@/hooks/use-auth";
 
 function Router() {
@@ -35,6 +36,7 @@ function Router() {
       <ProtectedRoute path="/check-in" component={EmployeeCheckIn} />
       <ProtectedRoute path="/attendance" component={EmployeeAttendance} />
       <ProtectedRoute path="/settings" component={EmployeeSettings} />
+      <ProtectedRoute path="/messages" component={EmployeeMessages} />
       <Route component={NotFound} />
     </Switch>
   );
