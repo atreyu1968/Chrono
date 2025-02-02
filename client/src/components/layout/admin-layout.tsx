@@ -12,6 +12,7 @@ import {
   User,
   Building2,
   MessageSquare,
+  Bell,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -147,48 +148,67 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       });
     },
   });
+    // Añadir consulta para mensajes
+    const { data: messages } = useQuery<{ id: number; content: string; sentAt: string; from: { fullName: string }, read: boolean }[]>({
+        queryKey: ["/api/messages"],
+        refetchInterval: 30000, // Refresca cada 30 segundos
+    });
+
+    const unreadCount = messages?.filter(m => !m.read).length || 0;
 
   const menuItems = [
     { icon: LayoutDashboard, label: "Panel", href: "/admin" },
     { icon: MapPin, label: "Ubicaciones", href: "/admin/locations" },
     { icon: Users, label: "Usuarios", href: "/admin/users" },
     { icon: Building2, label: "Departamentos", href: "/admin/departments" },
-    { icon: MessageSquare, label: "Mensajes", href: "/messages" },
+      {
+          icon: MessageSquare,
+          label: "Mensajes",
+          href: "/messages",
+          badge: unreadCount > 0 ? unreadCount : undefined
+      },
   ];
 
-  const MenuContent = () => (
-    <div className="space-y-2">
-      {menuItems.map(({ icon: Icon, label, href }) => {
-        const isActive = location === href;
-        return (
-          <Link key={href} href={href}>
+    const MenuContent = () => (
+        <div className="space-y-2">
+            {menuItems.map(({ icon: Icon, label, href, badge }) => {
+                const isActive = location === href;
+                return (
+                    <Link key={href} href={href}>
+                        <Button
+                            variant={isActive ? "secondary" : "ghost"}
+                            className={cn(
+                                "w-full justify-start gap-2 text-sm",
+                                isActive && "bg-primary/10",
+                                settings?.sidebarCollapsed && "px-2"
+                            )}
+                        >
+                            <Icon className={cn("h-4 w-4", isActive && "text-primary")} />
+                            {!settings?.sidebarCollapsed && (
+                                <span className="flex-1">{label}</span>
+                            )}
+                            {badge && !settings?.sidebarCollapsed && (
+                                <span className="ml-auto bg-primary text-primary-foreground rounded-full px-2 py-0.5 text-xs">
+                                    {badge}
+                                </span>
+                            )}
+                        </Button>
+                    </Link>
+                );
+            })}
             <Button
-              variant={isActive ? "secondary" : "ghost"}
-              className={cn(
-                "w-full justify-start gap-2 text-sm",
-                isActive && "bg-primary/10",
-                settings?.sidebarCollapsed && "px-2"
-              )}
+                variant="ghost"
+                className={cn(
+                    "w-full justify-start gap-2 text-red-600 mt-auto",
+                    settings?.sidebarCollapsed && "px-2"
+                )}
+                onClick={() => logoutMutation.mutate()}
             >
-              <Icon className={cn("h-4 w-4", isActive && "text-primary")} />
-              {!settings?.sidebarCollapsed && label}
+                <LogOut className="h-4 w-4" />
+                {!settings?.sidebarCollapsed && "Cerrar Sesión"}
             </Button>
-          </Link>
-        );
-      })}
-      <Button
-        variant="ghost"
-        className={cn(
-          "w-full justify-start gap-2 text-red-600 mt-auto",
-          settings?.sidebarCollapsed && "px-2"
-        )}
-        onClick={() => logoutMutation.mutate()}
-      >
-        <LogOut className="h-4 w-4" />
-        {!settings?.sidebarCollapsed && "Cerrar Sesión"}
-      </Button>
-    </div>
-  );
+        </div>
+    );
 
   return (
     <div className="min-h-screen bg-slate-50">
