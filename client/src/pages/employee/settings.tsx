@@ -11,6 +11,7 @@ import {
   FormField,
   FormItem,
   FormLabel,
+  FormMessage,
 } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -84,7 +85,7 @@ export default function SettingsPage() {
       autoCheckIn: false,
       autoCheckOut: false,
       singleCheckInPerDay: false,
-      schedules: schedules || weekdays.map(day => ({
+      schedules: weekdays.map(day => ({
         weekday: day.value,
         startTime: "09:00",
         endTime: "18:00",
@@ -109,7 +110,7 @@ export default function SettingsPage() {
     },
   });
 
-  const biometricMutation = useMutation({
+    const biometricMutation = useMutation({
     mutationFn: async () => {
       const optionsRes = await apiRequest("GET", "/api/auth/biometric/register");
       const options = await optionsRes.json();
@@ -131,9 +132,12 @@ export default function SettingsPage() {
     },
   });
 
+
   function onSubmit(values: SettingsFormValues) {
     mutation.mutate(values);
   }
+
+  console.log("Current user role:", user?.role);
 
   return (
     <EmployeeLayout>
@@ -161,7 +165,7 @@ export default function SettingsPage() {
 
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  <TabsContent value="interface" className="space-y-6">
+                    <TabsContent value="interface" className="space-y-6">
                     <div className="space-y-4">
                       <h3 className="text-lg font-medium">Apariencia</h3>
                       <FormField
@@ -275,6 +279,7 @@ export default function SettingsPage() {
                       )}
                     />
                   </TabsContent>
+
 
                   <TabsContent value="attendance" className="space-y-6">
                     <div className="space-y-4">
