@@ -24,13 +24,13 @@ export default function UserAttendancePage() {
   const monthEnd = endOfMonth(date);
 
   const { data: user, isLoading: isLoadingUser } = useQuery<SelectUser>({
-    queryKey: ["/api/users", Number(userId)],
+    queryKey: [`/api/users/${userId}`],
     enabled: !!userId,
   });
 
   const { data: attendance, isLoading: isLoadingAttendance } = useQuery<(SelectAttendance & { location: SelectLocation })[]>({
     queryKey: [
-      "/api/attendance/history",
+      "/api/attendance/user",
       {
         userId: Number(userId),
         startDate: format(monthStart, "yyyy-MM-dd"),
