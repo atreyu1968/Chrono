@@ -23,16 +23,16 @@ export default function UserAttendancePage() {
   const monthStart = startOfMonth(date);
   const monthEnd = endOfMonth(date);
 
-  const { data: user } = useQuery<SelectUser>({
-    queryKey: ["/api/users", userId],
+  const { data: user, isLoading: isLoadingUser } = useQuery<SelectUser>({
+    queryKey: ["/api/users", Number(userId)],
     enabled: !!userId,
   });
 
-  const { data: attendance } = useQuery<(SelectAttendance & { location: SelectLocation })[]>({
+  const { data: attendance, isLoading: isLoadingAttendance } = useQuery<(SelectAttendance & { location: SelectLocation })[]>({
     queryKey: [
       "/api/attendance/history",
       {
-        userId,
+        userId: Number(userId),
         startDate: format(monthStart, "yyyy-MM-dd"),
         endDate: format(monthEnd, "yyyy-MM-dd"),
       },
@@ -65,108 +65,121 @@ export default function UserAttendancePage() {
           </Link>
           <h1 className="text-2xl font-bold">Historial de Asistencia</h1>
           <p className="text-muted-foreground">
-            Usuario: {user?.fullName || 'Cargando...'}
+            {isLoadingUser ? (
+              "Cargando usuario..."
+            ) : user ? (
+              `Usuario: ${user.fullName}`
+            ) : (
+              "Usuario no encontrado"
+            )}
           </p>
         </div>
 
-        <div className="grid gap-8 md:grid-cols-[1fr,400px]">
-          <Card>
-            <CardHeader>
-              <CardTitle>Calendario de Asistencia</CardTitle>
-              <CardDescription>
-                Selecciona una fecha para ver los detalles
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Calendar
-                mode="single"
-                selected={date}
-                onSelect={(date) => date && setDate(date)}
-                locale={es}
-                modifiers={{
-                  marked: (date) => {
-                    const dateStr = format(date, "yyyy-MM-dd");
-                    return attendanceDates?.[dateStr]?.length > 0;
-                  },
-                }}
-                modifiersStyles={{
-                  marked: {
-                    fontWeight: "bold",
-                    border: "2px solid var(--primary)",
-                    borderRadius: "8px",
-                  },
-                }}
-                className="rounded-md border shadow-sm"
-              />
-            </CardContent>
-          </Card>
+        {isLoadingUser || isLoadingAttendance ? (
+          <div className="text-center py-8">
+            <Clock className="h-8 w-8 mx-auto mb-4 animate-spin" />
+            <p>Cargando datos...</p>
+          </div>
+        ) : (
+          <div className="grid gap-8 md:grid-cols-[1fr,400px]">
+            <Card>
+              <CardHeader>
+                <CardTitle>Calendario de Asistencia</CardTitle>
+                <CardDescription>
+                  Selecciona una fecha para ver los detalles
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Calendar
+                  mode="single"
+                  selected={date}
+                  onSelect={(date) => date && setDate(date)}
+                  locale={es}
+                  modifiers={{
+                    marked: (date) => {
+                      const dateStr = format(date, "yyyy-MM-dd");
+                      return Boolean(attendanceDates?.[dateStr]?.length);
+                    },
+                  }}
+                  modifiersStyles={{
+                    marked: {
+                      fontWeight: "bold",
+                      border: "2px solid var(--primary)",
+                      borderRadius: "8px",
+                    },
+                  }}
+                  className="rounded-md border shadow-sm"
+                />
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Detalles del Día</CardTitle>
-              <CardDescription>
-                {format(date, "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {selectedDateRecords.length > 0 ? (
-                <div className="space-y-6">
-                  {selectedDateRecords.map((record, index) => (
-                    <div key={record.id} className="space-y-4 bg-slate-50 p-4 rounded-lg border">
-                      {index > 0 && <hr className="my-4 border-slate-200" />}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="flex items-center gap-2 text-green-600">
-                          <LogIn className="h-4 w-4" />
-                          <div>
-                            <span className="text-sm text-slate-500">Entrada</span>
-                            <p className="font-medium">
-                              {format(new Date(record.checkInTime), "HH:mm")}
-                            </p>
-                          </div>
-                        </div>
-                        {record.checkOutTime && (
-                          <div className="flex items-center gap-2 text-red-600">
-                            <LogOut className="h-4 w-4" />
+            <Card>
+              <CardHeader>
+                <CardTitle>Detalles del Día</CardTitle>
+                <CardDescription>
+                  {format(date, "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {selectedDateRecords.length > 0 ? (
+                  <div className="space-y-6">
+                    {selectedDateRecords.map((record, index) => (
+                      <div key={record.id} className="space-y-4 bg-slate-50 p-4 rounded-lg border">
+                        {index > 0 && <hr className="my-4 border-slate-200" />}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="flex items-center gap-2 text-green-600">
+                            <LogIn className="h-4 w-4" />
                             <div>
-                              <span className="text-sm text-slate-500">Salida</span>
+                              <span className="text-sm text-slate-500">Entrada</span>
                               <p className="font-medium">
-                                {format(new Date(record.checkOutTime), "HH:mm")}
+                                {format(new Date(record.checkInTime), "HH:mm")}
                               </p>
                             </div>
                           </div>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 text-blue-600">
-                        <MapPin className="h-4 w-4" />
-                        <div>
-                          <span className="text-sm text-slate-500">Ubicación</span>
-                          <p className="font-medium">{record.location.name}</p>
+                          {record.checkOutTime && (
+                            <div className="flex items-center gap-2 text-red-600">
+                              <LogOut className="h-4 w-4" />
+                              <div>
+                                <span className="text-sm text-slate-500">Salida</span>
+                                <p className="font-medium">
+                                  {format(new Date(record.checkOutTime), "HH:mm")}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 text-blue-600">
+                          <MapPin className="h-4 w-4" />
+                          <div>
+                            <span className="text-sm text-slate-500">Ubicación</span>
+                            <p className="font-medium">{record.location.name}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 text-slate-600">
+                            <Clock className="h-4 w-4" />
+                            <span className="text-sm">Estado</span>
+                          </div>
+                          <Badge
+                            variant={record.status === "present" ? "default" : "destructive"}
+                            className="capitalize"
+                          >
+                            {record.status === "present" ? "Puntual" : "Tarde"}
+                          </Badge>
                         </div>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-slate-600">
-                          <Clock className="h-4 w-4" />
-                          <span className="text-sm">Estado</span>
-                        </div>
-                        <Badge
-                          variant={record.status === "present" ? "default" : "destructive"}
-                          className="capitalize"
-                        >
-                          {record.status === "present" ? "Puntual" : "Tarde"}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Clock className="h-8 w-8 mx-auto mb-4 opacity-50" />
-                  <p>No hay registros para este día</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Clock className="h-8 w-8 mx-auto mb-4 opacity-50" />
+                    <p>No hay registros para este día</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </AdminLayout>
   );
