@@ -48,23 +48,23 @@ export default function AttendanceRecordsPage() {
 
   // Cargar registros de asistencia
   const { data: attendance, isLoading: isLoadingAttendance } = useQuery<
-    (SelectAttendance & { location: SelectLocation })[]
+    (SelectAttendance & { location: SelectLocation; user: SelectUser })[]
   >({
     queryKey: [
-      "/api/attendance/user",
+      "/api/attendance",
       {
         userId: selectedUserId,
         startDate: date?.from ? format(date.from, "yyyy-MM-dd") : undefined,
         endDate: date?.to ? format(date.to, "yyyy-MM-dd") : undefined,
       },
     ],
-    enabled: !!selectedUserId,
   });
 
-  console.log("[Frontend] Query params:", {
+  console.log("[Frontend] Query state:", {
     userId: selectedUserId,
     startDate: date?.from ? format(date.from, "yyyy-MM-dd") : undefined,
     endDate: date?.to ? format(date.to, "yyyy-MM-dd") : undefined,
+    recordCount: attendance?.length
   });
 
   return (
@@ -89,7 +89,7 @@ export default function AttendanceRecordsPage() {
                   onValueChange={setSelectedUserId}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar usuario" />
+                    <SelectValue placeholder="Todos los usuarios" />
                   </SelectTrigger>
                   <SelectContent>
                     {users?.map((user) => (
@@ -121,7 +121,7 @@ export default function AttendanceRecordsPage() {
                         format(date.from, "dd/MM/yyyy")
                       )
                     ) : (
-                      <span>Seleccionar período</span>
+                      <span>Todos los períodos</span>
                     )}
                   </Button>
                 </PopoverTrigger>
@@ -143,12 +143,7 @@ export default function AttendanceRecordsPage() {
 
         <Card>
           <CardContent className="p-0">
-            {!selectedUserId ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Users className="h-8 w-8 mx-auto mb-4 opacity-50" />
-                <p>Selecciona un usuario para ver los registros</p>
-              </div>
-            ) : isLoadingAttendance ? (
+            {isLoadingAttendance ? (
               <div className="text-center py-8">
                 <CalendarIcon className="h-8 w-8 mx-auto mb-4 animate-spin" />
                 <p>Cargando registros...</p>
@@ -159,6 +154,7 @@ export default function AttendanceRecordsPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Fecha</TableHead>
+                      <TableHead>Usuario</TableHead>
                       <TableHead>Centro</TableHead>
                       <TableHead>Entrada</TableHead>
                       <TableHead>Salida</TableHead>
@@ -180,6 +176,7 @@ export default function AttendanceRecordsPage() {
                             </div>
                           </div>
                         </TableCell>
+                        <TableCell>{record.user?.fullName}</TableCell>
                         <TableCell>{record.location?.name}</TableCell>
                         <TableCell>
                           {format(new Date(record.checkInTime), "HH:mm")}
