@@ -16,7 +16,7 @@ import { Clock, LogIn, LogOut } from "lucide-react";
 import EmployeeLayout from "@/components/layout/employee-layout";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { SelectAttendance } from "@db/schema";
+import type { SelectAttendance, SelectLocation } from "@db/schema";
 
 export default function AttendancePage() {
   const [date, setDate] = useState<Date>(new Date());
@@ -24,7 +24,7 @@ export default function AttendancePage() {
   const monthEnd = endOfMonth(date);
   const { toast } = useToast();
 
-  const { data: attendance } = useQuery<SelectAttendance[]>({
+  const { data: attendance } = useQuery<(SelectAttendance & { location: SelectLocation })[]>({
     queryKey: [
       "/api/attendance/history",
       {
@@ -35,39 +35,15 @@ export default function AttendancePage() {
   });
 
   const attendanceDates = attendance?.reduce((acc, record) => {
-    if (record.checkInTime) {
-      const date = new Date(record.checkInTime);
-      if (!isNaN(date.getTime())) {
-        acc[date.toDateString()] = record;
-      }
-    }
+    const dateStr = new Date(record.checkInTime).toDateString();
+    acc[dateStr] = record;
     return acc;
-  }, {} as Record<string, SelectAttendance>);
-
-  // Mutation para registrar la salida
-  const checkOutMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest("POST", "/api/attendance/check-out");
-      return response;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/attendance/history"] });
-      toast({
-        title: "Salida registrada correctamente",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
+  }, {} as Record<string, SelectAttendance & { location: SelectLocation }>);
 
   // Verificar si hay un registro de entrada sin salida
   const hasOpenCheckIn = attendance?.some(
-    (record) => !record.checkOutTime && new Date(record.checkInTime).toDateString() === new Date().toDateString()
+    (record) => !record.checkOutTime && 
+    new Date(record.checkInTime).toDateString() === new Date().toDateString()
   );
 
   return (
@@ -99,19 +75,6 @@ export default function AttendancePage() {
                 }}
                 className="rounded-md border shadow-sm"
               />
-              {/* Botón de registro de salida */}
-              {hasOpenCheckIn && (
-                <div className="mt-4">
-                  <Button
-                    className="w-full"
-                    onClick={() => checkOutMutation.mutate()}
-                    disabled={checkOutMutation.isPending}
-                  >
-                    <LogOut className="mr-2 h-4 w-4" />
-                    {checkOutMutation.isPending ? "Registrando salida..." : "Registrar Salida"}
-                  </Button>
-                </div>
-              )}
             </CardContent>
           </Card>
 
@@ -148,6 +111,11 @@ export default function AttendancePage() {
                         )}
                       </div>
                     )}
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-blue-500" />
+                      <span className="font-medium">Ubicación:</span>
+                      {attendanceDates[date.toDateString()].location.name}
+                    </div>
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4 text-blue-500" />
                       <span className="font-medium">Estado:</span>
