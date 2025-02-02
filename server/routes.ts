@@ -267,6 +267,32 @@ export function registerRoutes(app: Express): Server {
     res.json(allUsers);
   });
 
+  // Ruta para obtener un usuario específico
+  app.get("/api/users/:id", async (req, res) => {
+    if (!req.user) return res.sendStatus(401);
+    if (req.user.role !== "admin") return res.sendStatus(403);
+
+    try {
+      const userId = parseInt(req.params.id);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "ID de usuario inválido" });
+      }
+
+      const user = await db.query.users.findFirst({
+        where: eq(users.id, userId)
+      });
+
+      if (!user) {
+        return res.status(404).json({ message: "Usuario no encontrado" });
+      }
+
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Error al obtener el usuario" });
+    }
+  });
+
   app.patch("/api/users/:id", async (req, res) => {
     if (req.user?.role !== "admin") return res.sendStatus(403);
     const [user] = await db
@@ -614,6 +640,15 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ message: "ID de usuario inválido" });
       }
 
+      // Primero verificar si el usuario existe
+      const targetUser = await db.query.users.findFirst({
+        where: eq(users.id, userIdNumber)
+      });
+
+      if (!targetUser) {
+          return res.status(404).json({ message: "Usuario no encontrado" });
+      }
+
       // Verificar permisos - solo admin puede ver otros usuarios
       if (req.user.role !== "admin" && userIdNumber !== req.user.id) {
         return res.sendStatus(403);
@@ -622,15 +657,11 @@ export function registerRoutes(app: Express): Server {
       let start, end;
 
       if (startDate && endDate) {
-        // If dates are provided, use them
         start = new Date(startDate.toString());
         end = new Date(endDate.toString());
-
-        // Set the time to start and end of day
         start.setHours(0, 0, 0, 0);
         end.setHours(23, 59, 59, 999);
       } else {
-        // If no dates provided, use current month
         start = startOfMonth(new Date());
         end = endOfMonth(new Date());
       }

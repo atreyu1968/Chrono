@@ -32,11 +32,13 @@ export default function UserAttendancePage() {
     to: endOfMonth(today)
   });
 
+  // Primero obtener los datos del usuario
   const { data: user, isLoading: isLoadingUser } = useQuery<SelectUser>({
     queryKey: [`/api/users/${userId}`],
     enabled: !!userId,
   });
 
+  // Después obtener su asistencia usando el ID del usuario
   const { data: attendance, isLoading: isLoadingAttendance } = useQuery<(SelectAttendance & { location: SelectLocation })[]>({
     queryKey: [
       "/api/attendance/user",
