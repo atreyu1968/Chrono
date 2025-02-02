@@ -44,7 +44,14 @@ export default function EmployeeCheckIn() {
 
   const checkInMutation = useMutation({
     mutationFn: async () => {
-      if (!coordinates || !location) return;
+      if (!coordinates || !location) {
+        toast({
+          title: "Error al fichar",
+          description: "Por favor, selecciona una ubicación y permite el acceso a tu ubicación",
+          variant: "destructive",
+        });
+        return;
+      }
 
       return apiRequest("POST", "/api/attendance/check-in", {
         locationId: parseInt(location),
@@ -94,7 +101,13 @@ export default function EmployeeCheckIn() {
   const getLocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (position) => setCoordinates(position.coords),
+        (position) => {
+          setCoordinates(position.coords);
+          toast({
+            title: "Ubicación obtenida",
+            description: "Ya puedes fichar tu entrada",
+          });
+        },
         (error) => {
           toast({
             title: "Error de ubicación",
@@ -103,6 +116,14 @@ export default function EmployeeCheckIn() {
           });
         }
       );
+    }
+  };
+
+  const handleCheckIn = () => {
+    if (!coordinates) {
+      getLocation();
+    } else if (location) {
+      checkInMutation.mutate();
     }
   };
 
@@ -138,16 +159,11 @@ export default function EmployeeCheckIn() {
                 <Button
                   className="w-full"
                   variant="default"
-                  onClick={() => {
-                    getLocation();
-                    if (coordinates) {
-                      checkInMutation.mutate();
-                    }
-                  }}
+                  onClick={handleCheckIn}
                   disabled={!location || checkInMutation.isPending}
                 >
                   <LogIn className="mr-2 h-4 w-4" />
-                  {checkInMutation.isPending ? "Procesando..." : "Registrar Entrada"}
+                  {checkInMutation.isPending ? "Procesando..." : coordinates ? "Registrar Entrada" : "Obtener Ubicación"}
                 </Button>
               </>
             ) : (
