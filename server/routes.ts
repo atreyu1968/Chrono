@@ -691,141 +691,114 @@ export function registerRoutes(app: Express): Server {
   
   // Ruta para obtener todos los registros de asistencia (admin)
   app.get("/api/attendance", async (req, res) => {
-  if (req.user?.role !== "admin") return res.sendStatus(403);
+    if (req.user?.role !== "admin") return res.sendStatus(403);
 
-  const { userId, departmentId, locationId, startDate, endDate } = req.query;
-  try {
-    const whereConditions = [];
+    const { userId, departmentId, locationId, startDate, endDate } = req.query;
+    try {
+      // Log inicial de los parámetros recibidos
+      console.log("[Backend] Parámetros de filtrado recibidos:", {
+        userId: typeof userId === 'string' ? Number(userId) : undefined,
+        departmentId: typeof departmentId === 'string' ? Number(departmentId) : undefined,
+        locationId: typeof locationId === 'string' ? Number(locationId) : undefined,
+        startDate,
+        endDate
+      });
 
-    // Log inicial de los parámetros recibidos
-    console.log("[Backend] Parámetros de filtrado recibidos:", {
-      userId: typeof userId === 'string' ? Number(userId) : undefined,
-      departmentId: typeof departmentId === 'string' ? Number(departmentId) : undefined,
-      locationId: typeof locationId === 'string' ? Number(locationId) : undefined,
-      startDate,
-      endDate
-    });
+      // Construir la consulta base
+      let query = db
+        .select({
+          id: attendance.id,
+          userId: attendance.userId,
+          locationId: attendance.locationId,
+          checkInTime: attendance.checkInTime,
+          checkOutTime: attendance.checkOutTime,
+          isManualEntry: attendance.isManualEntry,
+          incidenceType: attendance.incidenceType,
+          incidenceDescription: attendance.incidenceDescription,
+          statusId: attendance.statusId,
+          location: {
+            id: locations.id,
+            name: locations.name,
+          },
+          user: {
+            id: users.id,
+            fullName: users.fullName,
+            username: users.username,
+            departmentId: users.departmentId,
+          },
+          status: {
+            id: attendanceStatus.id,
+            name: attendanceStatus.name,
+            code: attendanceStatus.code,
+          },
+          department: {
+            id: departments.id,
+            name: departments.name,
+          }
+        })
+        .from(attendance)
+        .leftJoin(users, eq(attendance.userId, users.id))
+        .leftJoin(departments, eq(users.departmentId, departments.id))
+        .leftJoin(locations, eq(attendance.locationId, locations.id))
+        .leftJoin(attendanceStatus, eq(attendance.statusId, attendanceStatus.id));
 
-    // Filtro de usuario
-    if (userId && !isNaN(Number(userId))) {
-      whereConditions.push(eq(attendance.userId, Number(userId)));
-      console.log("[Backend] Filtro de usuario añadido:", Number(userId));
-    }
+      // Construir condiciones WHERE
+      const conditions = [];
 
-    // Filtro de ubicación
-    if (locationId && !isNaN(Number(locationId))) {
-      whereConditions.push(eq(attendance.locationId, Number(locationId)));
-      console.log("[Backend] Filtro de ubicación añadido:", Number(locationId));
-    }
-
-    // Filtro de departamento
-    if (departmentId && !isNaN(Number(departmentId))) {
-      whereConditions.push(eq(users.departmentId, Number(departmentId)));
-      console.log("[Backend] Filtro de departamento añadido:", Number(departmentId));
-    }
-
-    // Filtros de fecha
-    if (startDate) {
-      const start = new Date(startDate as string);
-      if (!isNaN(start.getTime())) {
-        start.setHours(0, 0, 0, 0);
-        whereConditions.push(gte(attendance.checkInTime, start));
-        console.log("[Backend] Filtro de fecha inicio añadido:", start.toISOString());
+      if (userId && !isNaN(Number(userId))) {
+        conditions.push(eq(attendance.userId, Number(userId)));
       }
-    }
 
-    if (endDate) {
-      const end = new Date(endDate as string);
-      if (!isNaN(end.getTime())) {
-        end.setHours(23, 59, 59, 999);
-        whereConditions.push(lte(attendance.checkInTime, end));
-        console.log("[Backend] Filtro de fecha fin añadido:", end.toISOString());
+      if (departmentId && !isNaN(Number(departmentId))) {
+        conditions.push(eq(users.departmentId, Number(departmentId)));
       }
-    }
 
-    console.log("[Backend] Total de condiciones WHERE:", whereConditions.length);
+      if (locationId && !isNaN(Number(locationId))) {
+        conditions.push(eq(attendance.locationId, Number(locationId)));
+      }
 
-    // Construir la consulta base primero
-    let query = db
-      .select({
-        id: attendance.id,
-        userId: attendance.userId,
-        locationId: attendance.locationId,
-        checkInTime: attendance.checkInTime,
-        checkOutTime: attendance.checkOutTime,
-        isManualEntry: attendance.isManualEntry,
-        incidenceType: attendance.incidenceType,
-        incidenceDescription: attendance.incidenceDescription,
-        status: {
-          id: attendanceStatus.id,
-          name: attendanceStatus.name,
-          code: attendanceStatus.code
-        },
-        location: {
-          id: locations.id,
-          name: locations.name,
-        },
-        user: {
-          id: users.id,
-          fullName: users.fullName,
-          username: users.username,
-          departmentId: users.departmentId,
-          department: departments.name
+      if (startDate) {
+        const start = new Date(startDate as string);
+        if (!isNaN(start.getTime())) {
+          start.setHours(0, 0, 0, 0);
+          conditions.push(gte(attendance.checkInTime, start));
         }
-      })
-      .from(attendance);
-
-    // Aplicar joins
-    query = query
-      .innerJoin(users, eq(attendance.userId, users.id))
-      .innerJoin(departments, eq(users.departmentId, departments.id))
-      .innerJoin(attendanceStatus, eq(attendance.statusId, attendanceStatus.id))
-      .leftJoin(locations, eq(attendance.locationId, locations.id));
-
-    // Aplicar filtros si existen
-    if (whereConditions.length > 0) {
-      query = query.where(and(...whereConditions));
-    }
-
-    // Ordenar resultados
-    query = query.orderBy(desc(attendance.checkInTime));
-
-    // Ejecutar consulta
-    const records = await query;
-
-    // Log de resultados
-    console.log("[Backend] Resultados de la consulta:", {
-      filtrosAplicados: whereConditions.length,
-      registrosEncontrados: records.length,
-      filtros: {
-        userId: userId ? Number(userId) : undefined,
-        departmentId: departmentId ? Number(departmentId) : undefined,
-        locationId: locationId ? Number(locationId) : undefined,
-        startDate: startDate ? new Date(startDate as string) : undefined,
-        endDate: endDate ? new Date(endDate as string) : undefined,
       }
-    });
 
-    // Si hay resultados, mostrar el primer registro para debug
-    if (records.length > 0) {
-      console.log("[Backend] Muestra del primer registro:", {
-        id: records[0].id,
-        userId: records[0].userId,
-        departmentId: records[0].user.departmentId,
-        locationId: records[0].locationId,
-        status: records[0].status
+      if (endDate) {
+        const end = new Date(endDate as string);
+        if (!isNaN(end.getTime())) {
+          end.setHours(23, 59, 59, 999);
+          conditions.push(lte(attendance.checkInTime, end));
+        }
+      }
+
+      // Aplicar condiciones WHERE si existen
+      if (conditions.length > 0) {
+        query = query.where(and(...conditions));
+      }
+
+      // Ordenar por fecha descendente
+      query = query.orderBy(desc(attendance.checkInTime));
+
+      // Ejecutar la consulta
+      const records = await query;
+
+      console.log("[Backend] Resultados de la consulta:", {
+        totalRegistros: records.length,
+        condicionesAplicadas: conditions.length,
+        primerRegistro: records[0] || null
+      });
+
+      res.json(records);
+    } catch (error) {
+      console.error("[Backend] Error en la consulta:", error);
+      res.status(500).json({ 
+        message: "Error al obtener los registros de asistencia",
+        error: error instanceof Error ? error.message : "Error desconocido"
       });
     }
-
-    res.json(records);
-  } catch (error) {
-    console.error("[Backend] Error en la consulta:", error);
-    res.status(500).json({ 
-      message: "Error al obtener los registros de asistencia",
-      error: error instanceof Error ? error.message : "Error desconocido"
-    });
-  }
-});
+  });
   
   // También actualizar la ruta de historial para incluir más detalles
   app.get("/api/attendance/history", async (req, res) => {
@@ -903,8 +876,7 @@ export function registerRoutes(app: Express): Server {
               name: holiday.name,
               type: holiday.type,
               date: holiday.date
-            } : null,
-            checkInFormatted: format(new Date(record.checkInTime), 'HH:mm'),
+            } : null,            checkInFormatted: format(new Date(record.checkInTime), 'HH:mm'),
             checkOutFormatted: record.checkOutTime
               ? format(new Date(record.checkOutTime), 'HH:mm')
               : null
