@@ -648,7 +648,7 @@ export function registerRoutes(app: Express): Server {
         console.log("[Backend] Invalid userId:", userId);
         return res.status(400).json({ message: "ID de usuario inválido" });
       }
-
+      
       // Verificar permisos - solo admin o el propio usuario pueden ver los registros
       if (req.user.role !== "admin" && userIdNumber !== req.user.id) {
         console.log("[Backend] Permission denied:", {
@@ -704,80 +704,79 @@ export function registerRoutes(app: Express): Server {
         userRole: req.user?.role
       });
 
-      // Construir la consulta base
-      let query = db
-        .select({
-          id: attendance.id,
-          checkInTime: attendance.checkInTime,
-          checkOutTime: attendance.checkOutTime,
-          status: {
-            code: attendanceStatus.code,
-            name: attendanceStatus.name
+      // Construir la consulta base con joins
+      const query = db.query.attendance.findMany({
+        where: (attendance, { and, eq, gte, lte }) => {
+          const conditions = [];
+
+          if (userId && !isNaN(Number(userId))) {
+            conditions.push(eq(attendance.userId, Number(userId)));
+          }
+
+          if (startDate) {
+            const start = new Date(startDate as string);
+            if (!isNaN(start.getTime())) {
+              start.setHours(0, 0, 0, 0);
+              conditions.push(gte(attendance.checkInTime, start));
+            }
+          }
+
+          if (endDate) {
+            const end = new Date(endDate as string);
+            if (!isNaN(end.getTime())) {
+              end.setHours(23, 59, 59, 999);
+              conditions.push(lte(attendance.checkInTime, end));
+            }
+          }
+
+          return conditions.length > 0 ? and(...conditions) : undefined;
+        },
+        with: {
+          user: {
+            columns: {
+              id: true,
+              fullName: true,
+              username: true,
+              departmentId: true,
+            },
+            with: {
+              department: true
+            }
           },
           location: {
-            id: locations.id,
-            name: locations.name,
+            columns: {
+              id: true,
+              name: true,
+            }
           },
-          user: {
-            id: users.id,
-            fullName: users.fullName,
-            username: users.username,
-            departmentId: users.departmentId
+          status: {
+            columns: {
+              id: true,
+              name: true,
+              code: true,
+            }
           }
-        })
-        .from(attendance)
-        .innerJoin(attendanceStatus, eq(attendance.statusId, attendanceStatus.id))
-        .leftJoin(locations, eq(attendance.locationId, locations.id))
-        .leftJoin(users, eq(attendance.userId, users.id));
+        },
+        orderBy: (attendance, { desc }) => [desc(attendance.checkInTime)]
+      });
 
-      // Aplicar filtros
-      const conditions = [];
-
-      if (userId && !isNaN(Number(userId))) {
-        console.log("[Backend] Adding user filter:", userId);
-        conditions.push(eq(attendance.userId, Number(userId)));
-      }
+      // Aplicar filtro de departamento después de obtener los resultados
+      let records = await query;
 
       if (departmentId && !isNaN(Number(departmentId))) {
-        console.log("[Backend] Adding department filter:", departmentId);
-        conditions.push(eq(users.departmentId, Number(departmentId)));
+        records = records.filter(record => 
+          record.user?.departmentId === Number(departmentId)
+        );
       }
 
       if (locationId && !isNaN(Number(locationId))) {
-        console.log("[Backend] Adding location filter:", locationId);
-        conditions.push(eq(attendance.locationId, Number(locationId)));
+        records = records.filter(record => 
+          record.locationId === Number(locationId)
+        );
       }
-
-      if (startDate) {
-        const start = new Date(startDate as string);
-        if (!isNaN(start.getTime())) {
-          start.setHours(0, 0, 0, 0);
-          console.log("[Backend] Adding start date filter:", start);
-          conditions.push(gte(attendance.checkInTime, start));
-        }
-      }
-
-      if (endDate) {
-        const end = new Date(endDate as string);
-        if (!isNaN(end.getTime())) {
-          end.setHours(23, 59, 59, 999);
-          console.log("[Backend] Adding end date filter:", end);
-          conditions.push(lte(attendance.checkInTime, end));
-        }
-      }
-
-      // Aplicar todos los filtros si existen
-      if (conditions.length > 0) {
-        query = query.where(and(...conditions));
-      }
-
-      // Ordenar por fecha de check-in descendente
-      query = query.orderBy(desc(attendance.checkInTime));
-
-      const records = await query;
 
       console.log("[Backend] Query executed with filters:", {
-        totalFilters: conditions.length,
+        totalFilters: records.length,
         recordsFound: records.length,
         appliedFilters: {
           userId: userId ? Number(userId) : undefined,
