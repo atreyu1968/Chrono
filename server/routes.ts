@@ -695,54 +695,37 @@ export function registerRoutes(app: Express): Server {
 
     const { userId, departmentId, locationId, startDate, endDate } = req.query;
     try {
-      // Log inicial de los parámetros recibidos
-      console.log("[Backend] Parámetros de filtrado recibidos:", {
-        userId: typeof userId === 'string' ? Number(userId) : undefined,
-        departmentId: typeof departmentId === 'string' ? Number(departmentId) : undefined,
-        locationId: typeof locationId === 'string' ? Number(locationId) : undefined,
-        startDate,
-        endDate
-      });
-
-      // Construir la consulta base
-      let query = db
+      // Build base query with essential joins
+      const baseQuery = db
         .select({
           id: attendance.id,
-          userId: attendance.userId,
-          locationId: attendance.locationId,
           checkInTime: attendance.checkInTime,
           checkOutTime: attendance.checkOutTime,
-          isManualEntry: attendance.isManualEntry,
-          incidenceType: attendance.incidenceType,
-          incidenceDescription: attendance.incidenceDescription,
+          locationId: attendance.locationId,
           statusId: attendance.statusId,
-          location: {
-            id: locations.id,
-            name: locations.name,
-          },
+          isManualEntry: attendance.isManualEntry,
           user: {
             id: users.id,
             fullName: users.fullName,
             username: users.username,
             departmentId: users.departmentId,
           },
+          location: {
+            id: locations.id,
+            name: locations.name,
+          },
           status: {
             id: attendanceStatus.id,
             name: attendanceStatus.name,
             code: attendanceStatus.code,
-          },
-          department: {
-            id: departments.id,
-            name: departments.name,
           }
         })
         .from(attendance)
-        .leftJoin(users, eq(attendance.userId, users.id))
-        .leftJoin(departments, eq(users.departmentId, departments.id))
+        .innerJoin(users, eq(attendance.userId, users.id))
         .leftJoin(locations, eq(attendance.locationId, locations.id))
-        .leftJoin(attendanceStatus, eq(attendance.statusId, attendanceStatus.id));
+        .innerJoin(attendanceStatus, eq(attendance.statusId, attendanceStatus.id));
 
-      // Construir condiciones WHERE
+      // Build WHERE conditions
       const conditions = [];
 
       if (userId && !isNaN(Number(userId))) {
@@ -773,27 +756,32 @@ export function registerRoutes(app: Express): Server {
         }
       }
 
-      // Aplicar condiciones WHERE si existen
+      // Apply WHERE conditions and ordering
+      let finalQuery = baseQuery;
+
       if (conditions.length > 0) {
-        query = query.where(and(...conditions));
+        finalQuery = finalQuery.where(and(...conditions));
       }
 
-      // Ordenar por fecha descendente
-      query = query.orderBy(desc(attendance.checkInTime));
+      finalQuery = finalQuery.orderBy(desc(attendance.checkInTime));
 
-      // Ejecutar la consulta
-      const records = await query;
+      // Execute query
+      const records = await finalQuery;
 
-      console.log("[Backend] Resultados de la consulta:", {
-        totalRegistros: records.length,
-        condicionesAplicadas: conditions.length,
-        primerRegistro: records[0] || null
+      console.log("[Attendance] Query executed with:", {
+        filters: {
+          userId: userId ? Number(userId) : null,
+          departmentId: departmentId ? Number(departmentId) : null,
+          locationId: locationId ? Number(locationId) : null,
+        },
+        totalRecords: records.length,
+        sampleRecord: records.length > 0 ? records[0].id : null
       });
 
       res.json(records);
     } catch (error) {
-      console.error("[Backend] Error en la consulta:", error);
-      res.status(500).json({ 
+      console.error("[Attendance] Error:", error);
+      res.status(500).json({
         message: "Error al obtener los registros de asistencia",
         error: error instanceof Error ? error.message : "Error desconocido"
       });
@@ -892,7 +880,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Attendance stats (admin only)
-  app.get("/api/attendance/stats", async (req, res) => {
+app.get("/api/attendance/stats", async (req, res) => {
     if (req.user?.role !== "admin") return res.sendStatus(403);
 
     const today = new Date();
