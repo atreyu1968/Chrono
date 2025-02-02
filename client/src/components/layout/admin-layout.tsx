@@ -155,18 +155,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     });
 
     const unreadCount = messages?.filter(m => !m.read).length || 0;
-
   const menuItems = [
     { icon: LayoutDashboard, label: "Panel", href: "/admin" },
     { icon: MapPin, label: "Ubicaciones", href: "/admin/locations" },
     { icon: Users, label: "Usuarios", href: "/admin/users" },
     { icon: Building2, label: "Departamentos", href: "/admin/departments" },
-      {
-          icon: MessageSquare,
-          label: "Mensajes",
-          href: "/messages",
-          badge: unreadCount > 0 ? unreadCount : undefined
-      },
+    {
+      icon: MessageSquare,
+      label: "Mensajes",
+      href: "/admin/messages",
+      badge: unreadCount > 0 ? unreadCount : undefined
+    },
   ];
 
     const MenuContent = () => (

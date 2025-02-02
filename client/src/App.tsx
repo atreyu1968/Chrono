@@ -16,6 +16,7 @@ import EmployeeCheckIn from "@/pages/employee/check-in";
 import EmployeeAttendance from "@/pages/employee/attendance";
 import EmployeeSettings from "@/pages/employee/settings";
 import EmployeeMessages from "@/pages/employee/messages";
+import AdminMessages from "@/pages/admin/messages";
 import { useAuth } from "@/hooks/use-auth";
 
 function Router() {
@@ -35,6 +36,7 @@ function Router() {
       <ProtectedRoute path="/admin/users" component={AdminUsers} requireAdmin />
       <ProtectedRoute path="/admin/departments" component={AdminDepartments} requireAdmin />
       <ProtectedRoute path="/admin/users/:userId/attendance" component={UserAttendancePage} requireAdmin />
+      <ProtectedRoute path="/admin/messages" component={AdminMessages} requireAdmin />
       <ProtectedRoute path="/check-in" component={EmployeeCheckIn} />
       <ProtectedRoute path="/attendance" component={EmployeeAttendance} />
       <ProtectedRoute path="/settings" component={EmployeeSettings} />
