@@ -632,7 +632,7 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/attendance/user", async (req, res) => {
     if (!req.user) return res.sendStatus(401);
     const { userId, startDate, endDate } = req.query;
-  
+
     try {
       // Validar que userId sea un número válido
       const userIdNumber = userId ? parseInt(userId as string) : req.user.id;
@@ -640,49 +640,42 @@ export function registerRoutes(app: Express): Server {
         console.log("[Attendance] Invalid userId:", userId);
         return res.status(400).json({ message: "ID de usuario inválido" });
       }
-  
+
       // Primero verificar si el usuario existe
       const targetUser = await db.query.users.findFirst({
         where: eq(users.id, userIdNumber)
       });
-  
+
       if (!targetUser) {
         console.log("[Attendance] User not found:", userIdNumber);
         return res.status(404).json({ message: "Usuario no encontrado" });
       }
-  
+
       // Verificar permisos - solo admin puede ver otros usuarios
       if (req.user.role !== "admin" && userIdNumber !== req.user.id) {
         console.log("[Attendance] Permission denied. User role:", req.user.role, "trying to access user:", userIdNumber);
         return res.sendStatus(403);
       }
-  
-      let start, end;
-  
+
+      let start: Date, end: Date;
+
       if (startDate && endDate) {
         start = new Date(startDate.toString());
         end = new Date(endDate.toString());
-        start.setHours(0, 0, 0, 0);
-        end.setHours(23, 59, 59, 999);
       } else {
         start = startOfMonth(new Date());
         end = endOfMonth(new Date());
       }
-  
-      // Validate that dates are valid
-      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-        console.log("[Attendance] Invalid dates:", { startDate, endDate });
-        return res.status(400).json({ message: "Fechas inválidas" });
-      }
-  
-      console.log("[Attendance] Querying with params:", {
-        userIdNumber,
-        start,
-        end,
-        rawStartDate: startDate,
-        rawEndDate: endDate
+
+      start.setUTCHours(0, 0, 0, 0);
+      end.setUTCHours(23, 59, 59, 999);
+
+      console.log("[Attendance] Query dates:", {
+        start: start.toISOString(),
+        end: end.toISOString(),
+        userIdNumber
       });
-  
+
       const history = await db
         .select({
           id: attendance.id,
@@ -700,18 +693,24 @@ export function registerRoutes(app: Express): Server {
           }
         })
         .from(attendance)
-        .where(and(
-          eq(attendance.userId, userIdNumber),
-          gte(attendance.checkInTime, start),
-          lte(attendance.checkInTime, end)
-        ))
+        .where(
+          and(
+            eq(attendance.userId, userIdNumber),
+            gte(attendance.checkInTime, start),
+            lte(attendance.checkInTime, end)
+          )
+        )
         .leftJoin(locations, eq(attendance.locationId, locations.id))
         .orderBy(desc(attendance.checkInTime));
-  
+
       console.log("[Attendance] Found records:", history.length, "for user:", userIdNumber);
-      console.log("[Attendance] Query parameters:", { userIdNumber, start, end });
+      console.log("[Attendance] Query parameters:", { 
+        userIdNumber, 
+        start: start.toISOString(), 
+        end: end.toISOString() 
+      });
       console.log("[Attendance] First record (if any):", history[0]);
-  
+
       res.json(history);
     } catch (error) {
       console.error("[Attendance] Error fetching user attendance history:", error);
