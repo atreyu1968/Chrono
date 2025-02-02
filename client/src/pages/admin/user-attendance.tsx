@@ -47,7 +47,7 @@ export default function UserAttendancePage() {
     queryKey: [
       "/api/attendance/user",
       {
-        userId: userId,
+        userId: String(userId),
         startDate: date?.from?.toISOString(),
         endDate: date?.to?.toISOString(),
       },

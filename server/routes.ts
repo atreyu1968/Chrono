@@ -664,7 +664,7 @@ export function registerRoutes(app: Express): Server {
         hasAccess: req.user.role === "admin" || userIdNumber === req.user.id
       });
 
-      // Verificar permisos - solo admin puede ver otros usuarios
+      // Verificar permisos - solo admin o el propio usuario pueden ver los registros
       if (req.user.role !== "admin" && userIdNumber !== req.user.id) {
         console.log("[Attendance] Permission denied. User role:", req.user.role, "trying to access user:", userIdNumber);
         return res.sendStatus(403);
