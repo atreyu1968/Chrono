@@ -355,17 +355,36 @@ export function registerRoutes(app: Express): Server {
     if (!req.user) return res.sendStatus(401);
     const { startDate, endDate } = req.query;
 
-    const history = await db.select()
-      .from(attendance)
-      .where(
-        and(
-          eq(attendance.userId, req.user.id),
-          gte(attendance.checkInTime, new Date(startDate as string)),
-          lte(attendance.checkInTime, new Date(endDate as string))
-        )
-      );
+    try {
+      // Validate and parse dates
+      const start = new Date(startDate as string);
+      const end = new Date(endDate as string);
 
-    res.json(history);
+      // Validate that dates are valid
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        return res.status(400).json({ message: "Fechas inválidas" });
+      }
+
+      // Set the time to start and end of day respectively
+      start.setHours(0, 0, 0, 0);
+      end.setHours(23, 59, 59, 999);
+
+      const history = await db
+        .select()
+        .from(attendance)
+        .where(
+          and(
+            eq(attendance.userId, req.user.id),
+            gte(attendance.checkInTime, start),
+            lte(attendance.checkInTime, end)
+          )
+        );
+
+      res.json(history);
+    } catch (error) {
+      console.error("Error fetching attendance history:", error);
+      res.status(500).json({ message: "Error al obtener el historial de asistencia" });
+    }
   });
 
   // Attendance stats (admin only)

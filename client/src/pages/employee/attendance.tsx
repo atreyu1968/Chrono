@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { format } from "date-fns";
+import { format, startOfMonth, endOfMonth } from "date-fns";
 import { es } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -17,23 +17,25 @@ import type { SelectAttendance } from "@db/schema";
 
 export default function AttendancePage() {
   const [date, setDate] = useState<Date>(new Date());
-  const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
-  const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59);
+  const monthStart = startOfMonth(date);
+  const monthEnd = endOfMonth(date);
 
   const { data: attendance } = useQuery<SelectAttendance[]>({
     queryKey: [
       "/api/attendance/history",
       {
-        startDate: startOfMonth.toISOString(),
-        endDate: endOfMonth.toISOString(),
+        startDate: monthStart.toISOString(),
+        endDate: monthEnd.toISOString(),
       },
     ],
   });
 
   const attendanceDates = attendance?.reduce((acc, record) => {
     if (record.checkInTime) {
-      const date = new Date(record.checkInTime).toDateString();
-      acc[date] = record;
+      const date = new Date(record.checkInTime);
+      if (!isNaN(date.getTime())) {
+        acc[date.toDateString()] = record;
+      }
     }
     return acc;
   }, {} as Record<string, SelectAttendance>);
