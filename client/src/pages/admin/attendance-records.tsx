@@ -58,7 +58,13 @@ export default function AttendanceRecordsPage() {
         endDate: date?.to ? format(date.to, "yyyy-MM-dd") : undefined,
       },
     ],
-    enabled: !!selectedUserId && !!date?.from && !!date?.to,
+    enabled: !!selectedUserId,
+  });
+
+  console.log("[Frontend] Query params:", {
+    userId: selectedUserId,
+    startDate: date?.from ? format(date.from, "yyyy-MM-dd") : undefined,
+    endDate: date?.to ? format(date.to, "yyyy-MM-dd") : undefined,
   });
 
   return (
@@ -137,10 +143,10 @@ export default function AttendanceRecordsPage() {
 
         <Card>
           <CardContent className="p-0">
-            {!selectedUserId || !date ? (
+            {!selectedUserId ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Users className="h-8 w-8 mx-auto mb-4 opacity-50" />
-                <p>Selecciona un usuario y un período para ver los registros</p>
+                <p>Selecciona un usuario para ver los registros</p>
               </div>
             ) : isLoadingAttendance ? (
               <div className="text-center py-8">
