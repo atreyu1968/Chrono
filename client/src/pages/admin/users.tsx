@@ -86,14 +86,6 @@ const userSchema = z.object({
   path: ["medusaUser"],
 });
 
-const departments = [
-  "Ingeniería",
-  "Ventas",
-  "Marketing",
-  "Recursos Humanos",
-  "Finanzas",
-  "Operaciones",
-];
 
 interface SendMessageDialogProps {
   userId: number;
@@ -148,6 +140,10 @@ export default function UsersPage() {
 
   const { data: users } = useQuery<SelectUser[]>({
     queryKey: ["/api/users"],
+  });
+
+  const { data: departments } = useQuery({
+    queryKey: ["/api/departments"],
   });
 
   const userStats = {
@@ -363,9 +359,9 @@ export default function UsersPage() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {departments.map((dept) => (
-                              <SelectItem key={dept} value={dept}>
-                                {dept}
+                            {departments?.map((dept: any) => (
+                              <SelectItem key={dept.id} value={dept.name}>
+                                {dept.name}
                               </SelectItem>
                             ))}
                           </SelectContent>
