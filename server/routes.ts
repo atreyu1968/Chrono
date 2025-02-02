@@ -634,14 +634,28 @@ export function registerRoutes(app: Express): Server {
     const { userId } = req.query;
 
     try {
+      console.log("[Backend] Attendance request received:", {
+        requestedUserId: userId,
+        authenticatedUser: {
+          id: req.user.id,
+          role: req.user.role
+        }
+      });
+
       // Validar que userId sea un número válido
       const userIdNumber = userId ? parseInt(userId as string) : req.user.id;
       if (isNaN(userIdNumber)) {
+        console.log("[Backend] Invalid userId:", userId);
         return res.status(400).json({ message: "ID de usuario inválido" });
       }
 
       // Verificar permisos - solo admin o el propio usuario pueden ver los registros
       if (req.user.role !== "admin" && userIdNumber !== req.user.id) {
+        console.log("[Backend] Permission denied:", {
+          requestingUser: req.user.id,
+          requestedUser: userIdNumber,
+          role: req.user.role
+        });
         return res.sendStatus(403);
       }
 
@@ -662,7 +676,12 @@ export function registerRoutes(app: Express): Server {
         .where(eq(attendance.userId, userIdNumber))
         .orderBy(desc(attendance.checkInTime));
 
-      console.log("[Backend] Found records:", records.length);
+      console.log("[Backend] Query results:", {
+        userIdNumber,
+        recordsFound: records.length,
+        firstRecord: records[0]
+      });
+
       res.json(records);
     } catch (error) {
       console.error("[Backend] Error:", error);

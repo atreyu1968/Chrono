@@ -51,15 +51,24 @@ export default function UserAttendancePage() {
       },
     ],
     enabled: !!userId,
+    onSuccess: (data) => {
+      console.log("[Frontend] Successfully received attendance data:", {
+        recordCount: data?.length,
+        firstRecord: data?.[0]
+      });
+    },
+    onError: (error) => {
+      console.error("[Frontend] Error fetching attendance:", error);
+    }
   });
 
-  console.log("[Frontend] Attendance query:", {
+  console.log("[Frontend] Attendance query state:", {
     userId,
     isLoadingAttendance,
+    hasData: !!attendance,
     recordsCount: attendance?.length
   });
-
-
+  
   // Group attendance records by date
   const attendanceDates = attendance?.reduce((acc, record) => {
     const dateKey = format(new Date(record.checkInTime), "yyyy-MM-dd");
