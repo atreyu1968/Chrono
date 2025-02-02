@@ -634,6 +634,12 @@ export function registerRoutes(app: Express): Server {
     const { userId, startDate, endDate } = req.query;
 
     try {
+      console.log("[Attendance] Request from user:", {
+        requestingUserId: req.user.id,
+        requestingUserRole: req.user.role,
+        requestedUserId: userId
+      });
+
       // Validar que userId sea un número válido
       const userIdNumber = userId ? parseInt(userId as string) : req.user.id;
       if (isNaN(userIdNumber)) {
@@ -650,6 +656,13 @@ export function registerRoutes(app: Express): Server {
         console.log("[Attendance] User not found:", userIdNumber);
         return res.status(404).json({ message: "Usuario no encontrado" });
       }
+
+      console.log("[Attendance] Authorization check:", {
+        isAdmin: req.user.role === "admin",
+        requestingUserId: req.user.id,
+        targetUserId: userIdNumber,
+        hasAccess: req.user.role === "admin" || userIdNumber === req.user.id
+      });
 
       // Verificar permisos - solo admin puede ver otros usuarios
       if (req.user.role !== "admin" && userIdNumber !== req.user.id) {
@@ -859,8 +872,7 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/messages", async (req, res) => {
     if (!req.user) return res.sendStatus(401);
     const message = await db.insert(messages).values({
-      ...req.body,
-      fromUserId: req.user.id,
+      ...req.body,      fromUserId: req.user.id,
       sentAt: new Date()
     }).returning();
     res.json(message[0]);

@@ -37,22 +37,33 @@ export default function UserAttendancePage() {
     enabled: !!userId,
   });
 
-  console.log("[Frontend] Using userId:", userId);
-  console.log("[Frontend] Date range:", date);
+  console.log("[Frontend] Loading user data:", {
+    userId,
+    isLoadingUser,
+    user
+  });
 
   const { data: attendance, isLoading: isLoadingAttendance } = useQuery<(SelectAttendance & { location: SelectLocation })[]>({
     queryKey: [
       "/api/attendance/user",
       {
-        userId,
-        startDate: date?.from ? format(date.from, "yyyy-MM-dd") : undefined,
-        endDate: date?.to ? format(date.to, "yyyy-MM-dd") : undefined,
+        userId: userId,
+        startDate: date?.from?.toISOString(),
+        endDate: date?.to?.toISOString(),
       },
     ],
     enabled: !!userId && !!date?.from && !!date?.to,
   });
 
-  console.log("[Frontend] Received attendance data:", attendance);
+  console.log("[Frontend] Attendance query:", {
+    userId,
+    dateRange: {
+      from: date?.from?.toISOString(),
+      to: date?.to?.toISOString()
+    },
+    isLoadingAttendance,
+    recordsCount: attendance?.length
+  });
 
   // Group attendance records by date
   const attendanceDates = attendance?.reduce((acc, record) => {
