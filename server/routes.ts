@@ -632,30 +632,33 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/attendance/user", async (req, res) => {
     if (!req.user) return res.sendStatus(401);
     const { userId, startDate, endDate } = req.query;
-
+  
     try {
       // Validar que userId sea un número válido
       const userIdNumber = userId ? parseInt(userId as string) : req.user.id;
       if (isNaN(userIdNumber)) {
+        console.log("[Attendance] Invalid userId:", userId);
         return res.status(400).json({ message: "ID de usuario inválido" });
       }
-
+  
       // Primero verificar si el usuario existe
       const targetUser = await db.query.users.findFirst({
         where: eq(users.id, userIdNumber)
       });
-
+  
       if (!targetUser) {
-          return res.status(404).json({ message: "Usuario no encontrado" });
+        console.log("[Attendance] User not found:", userIdNumber);
+        return res.status(404).json({ message: "Usuario no encontrado" });
       }
-
+  
       // Verificar permisos - solo admin puede ver otros usuarios
       if (req.user.role !== "admin" && userIdNumber !== req.user.id) {
+        console.log("[Attendance] Permission denied. User role:", req.user.role, "trying to access user:", userIdNumber);
         return res.sendStatus(403);
       }
-
+  
       let start, end;
-
+  
       if (startDate && endDate) {
         start = new Date(startDate.toString());
         end = new Date(endDate.toString());
@@ -665,12 +668,21 @@ export function registerRoutes(app: Express): Server {
         start = startOfMonth(new Date());
         end = endOfMonth(new Date());
       }
-
+  
       // Validate that dates are valid
       if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        console.log("[Attendance] Invalid dates:", { startDate, endDate });
         return res.status(400).json({ message: "Fechas inválidas" });
       }
-
+  
+      console.log("[Attendance] Querying with params:", {
+        userIdNumber,
+        start,
+        end,
+        rawStartDate: startDate,
+        rawEndDate: endDate
+      });
+  
       const history = await db
         .select({
           id: attendance.id,
@@ -695,13 +707,14 @@ export function registerRoutes(app: Express): Server {
         ))
         .leftJoin(locations, eq(attendance.locationId, locations.id))
         .orderBy(desc(attendance.checkInTime));
-
+  
       console.log("[Attendance] Found records:", history.length, "for user:", userIdNumber);
       console.log("[Attendance] Query parameters:", { userIdNumber, start, end });
-
+      console.log("[Attendance] First record (if any):", history[0]);
+  
       res.json(history);
     } catch (error) {
-      console.error("Error fetching user attendance history:", error);
+      console.error("[Attendance] Error fetching user attendance history:", error);
       res.status(500).json({ message: "Error al obtener el historial de asistencia" });
     }
   });
@@ -855,7 +868,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   app.get("/api/messages", async (req, res) => {
-    if (!req.user) return res.sendStatus(401);
+if (!req.user) return res.sendStatus(401);
 
     const userMessages = await db
       .select({
