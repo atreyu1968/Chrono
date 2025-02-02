@@ -78,6 +78,7 @@ export const userSchedules = pgTable("user_schedules", {
   weekday: integer("weekday").notNull(), // 0-6, donde 0 es domingo
   startTime: time("start_time").notNull(),
   endTime: time("end_time").notNull(),
+  enabled: boolean("enabled").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });

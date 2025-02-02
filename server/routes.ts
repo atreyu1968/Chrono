@@ -8,6 +8,7 @@ import { eq, and, gte, lte, isNull, or, desc } from "drizzle-orm";
 import fileUpload from "express-fileupload";
 import path from "path";
 import { addMinutes, parseISO, format } from "date-fns";
+import { es } from 'date-fns/locale';
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
@@ -407,57 +408,105 @@ export function registerRoutes(app: Express): Server {
     if (!req.user) return res.sendStatus(401);
 
     const { locationId, latitude, longitude } = req.body;
-    const [location] = await db.select().from(locations).where(eq(locations.id, locationId));
-
-    if (!location) {
-      return res.status(404).json({ message: "Ubicación no encontrada" });
-    }
-
-    // Verificar si el usuario está dentro del radio
-    const distance = calculateDistance(
-      latitude,
-      longitude,
-      location.latitude,
-      location.longitude
-    );
-
-    if (distance > location.radius) {
-      return res.status(400).json({ message: "No estás dentro del rango permitido para fichar" });
-    }
-
-    // Obtener el horario del usuario para hoy
     const today = new Date();
-    const weekday = today.getDay(); // 0-6, donde 0 es domingo
 
-    const [schedule] = await db
-      .select()
-      .from(userSchedules)
-      .where(
-        and(
-          eq(userSchedules.userId, req.user.id),
-          eq(userSchedules.weekday, weekday)
-        )
+    try {
+      // 1. Verificar si es un día festivo
+      const [holiday] = await db
+        .select()
+        .from(holidays)
+        .where(eq(holidays.date, today));
+
+      if (holiday) {
+        return res.status(400).json({ 
+          message: "Hoy es festivo", 
+          holiday 
+        });
+      }
+
+      // 2. Verificar si el usuario debe fichar hoy
+      const weekday = today.getDay();
+      const [schedule] = await db
+        .select()
+        .from(userSchedules)
+        .where(
+          and(
+            eq(userSchedules.userId, req.user.id),
+            eq(userSchedules.weekday, weekday),
+            eq(userSchedules.enabled, true)
+          )
+        );
+
+      if (!schedule) {
+        return res.status(400).json({ 
+          message: "No tienes horario configurado para hoy o el día está deshabilitado"
+        });
+      }
+
+      // 3. Verificar la ubicación
+      const [location] = await db
+        .select()
+        .from(locations)
+        .where(eq(locations.id, locationId));
+
+      if (!location) {
+        return res.status(404).json({ message: "Ubicación no encontrada" });
+      }
+
+      const distance = calculateDistance(
+        latitude,
+        longitude,
+        location.latitude,
+        location.longitude
       );
 
-    let status = "present";
-    if (schedule) {
+      if (distance > location.radius) {
+        return res.status(400).json({ 
+          message: "No estás dentro del rango permitido para fichar",
+          distance,
+          maxRadius: location.radius
+        });
+      }
+
+      // 4. Determinar si es tarde
+      let status = "present";
       const scheduleStart = parseISO(`${format(today, 'yyyy-MM-dd')}T${schedule.startTime}`);
       const now = new Date();
 
-      // Si el usuario ficha más de 5 minutos después de su hora de entrada, se marca como tarde
       if (now > addMinutes(scheduleStart, 5)) {
         status = "late";
       }
+
+      // 5. Registrar la asistencia
+      const [checkIn] = await db
+        .insert(attendance)
+        .values({
+          userId: req.user.id,
+          locationId,
+          checkInTime: now,
+          status
+        })
+        .returning();
+
+      // 6. Devolver respuesta detallada
+      const response = {
+        ...checkIn,
+        schedule: {
+          startTime: schedule.startTime,
+          endTime: schedule.endTime
+        },
+        location: {
+          name: location.name,
+          distance: Math.round(distance)
+        },
+        status
+      };
+
+      res.json(response);
+    } catch (error) {
+      console.error("Error during check-in:", error);
+      res.status(500).json({ message: "Error al registrar la entrada" });
     }
-
-    const checkIn = await db.insert(attendance).values({
-      userId: req.user.id,
-      locationId,
-      checkInTime: today,
-      status
-    }).returning();
-
-    res.json(checkIn[0]);
   });
 
   app.post("/api/attendance/check-out", async (req, res) => {
@@ -551,6 +600,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // También actualizar la ruta de historial para incluir más detalles
   app.get("/api/attendance/history", async (req, res) => {
     if (!req.user) return res.sendStatus(401);
     const { startDate, endDate } = req.query;
@@ -559,24 +609,20 @@ export function registerRoutes(app: Express): Server {
       let start, end;
 
       if (startDate && endDate) {
-        // If dates are provided, use them
         start = new Date(startDate.toString());
         end = new Date(endDate.toString());
-
-        // Set the time to start and end of day
         start.setHours(0, 0, 0, 0);
         end.setHours(23, 59, 59, 999);
       } else {
-        // If no dates provided, use current month
         start = startOfMonth(new Date());
         end = endOfMonth(new Date());
       }
 
-      // Validate that dates are valid
       if (isNaN(start.getTime()) || isNaN(end.getTime())) {
         return res.status(400).json({ message: "Fechas inválidas" });
       }
 
+      // Obtener registros con información detallada
       const history = await db.query.attendance.findMany({
         where: and(
           eq(attendance.userId, req.user.id),
@@ -586,10 +632,51 @@ export function registerRoutes(app: Express): Server {
         with: {
           location: true
         },
-        orderBy: [attendance.checkInTime]
+        orderBy: [desc(attendance.checkInTime)]
       });
 
-      res.json(history);
+      // Enriquecer la respuesta con información adicional
+      const enrichedHistory = await Promise.all(
+        history.map(async (record) => {
+          const recordDate = new Date(record.checkInTime);
+          const weekday = recordDate.getDay();
+
+          // Obtener el horario para ese día
+          const [schedule] = await db
+            .select()
+            .from(userSchedules)
+            .where(
+              and(
+                eq(userSchedules.userId, req.user.id),
+                eq(userSchedules.weekday, weekday)
+              )
+            );
+
+          // Verificar si era festivo
+          const [holiday] = await db
+            .select()
+            .from(holidays)
+            .where(eq(holidays.date, recordDate));
+
+          return {
+            ...record,
+            date: format(recordDate, 'yyyy-MM-dd'),
+            weekday: format(recordDate, 'EEEE', { locale: es }),
+            schedule: schedule ? {
+              startTime: schedule.startTime,
+              endTime: schedule.endTime,
+              enabled: schedule.enabled
+            } : null,
+            holiday: holiday || null,
+            checkInFormatted: format(new Date(record.checkInTime), 'HH:mm'),
+            checkOutFormatted: record.checkOutTime 
+              ? format(new Date(record.checkOutTime), 'HH:mm') 
+              : null
+          };
+        })
+      );
+
+      res.json(enrichedHistory);
     } catch (error) {
       console.error("Error fetching attendance history:", error);
       res.status(500).json({ message: "Error al obtener el historial de asistencia" });
