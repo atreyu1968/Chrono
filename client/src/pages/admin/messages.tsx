@@ -51,10 +51,15 @@ export default function MessagesPage() {
         m => m.fromUserId === selectedUserId && m.toUserId === user?.id && !m.read
       );
 
-      // Marca los mensajes como leídos uno por uno
-      unreadMessages.forEach(message => {
-        markAsReadMutation.mutate(message.id);
-      });
+      // Esperar 3 segundos antes de marcar como leídos
+      const timer = setTimeout(() => {
+        // Marca los mensajes como leídos uno por uno
+        unreadMessages.forEach(message => {
+          markAsReadMutation.mutate(message.id);
+        });
+      }, 3000);
+
+      return () => clearTimeout(timer);
     }
   }, [selectedUserId, messages, user?.id]);
 
