@@ -688,6 +688,72 @@ export function registerRoutes(app: Express): Server {
       res.status(500).json({ message: "Error al obtener el historial de asistencia" });
     }
   });
+  
+  // Ruta para obtener todos los registros de asistencia (admin)
+  app.get("/api/attendance", async (req, res) => {
+    if (req.user?.role !== "admin") return res.sendStatus(403);
+
+    const { userId, startDate, endDate } = req.query;
+    try {
+      let query = db
+        .select({
+          id: attendance.id,
+          checkInTime: attendance.checkInTime,
+          checkOutTime: attendance.checkOutTime,
+          status: attendance.status,
+          location: {
+            id: locations.id,
+            name: locations.name,
+          },
+          user: {
+            id: users.id,
+            fullName: users.fullName,
+            username: users.username,
+          }
+        })
+        .from(attendance)
+        .leftJoin(locations, eq(attendance.locationId, locations.id))
+        .leftJoin(users, eq(attendance.userId, users.id));
+
+      // Aplicar filtros si se proporcionan
+      const filters = [];
+
+      if (userId) {
+        filters.push(eq(attendance.userId, parseInt(userId as string)));
+      }
+
+      if (startDate) {
+        const start = new Date(startDate as string);
+        start.setHours(0, 0, 0, 0);
+        filters.push(gte(attendance.checkInTime, start));
+      }
+
+      if (endDate) {
+        const end = new Date(endDate as string);
+        end.setHours(23, 59, 59, 999);
+        filters.push(lte(attendance.checkInTime, end));
+      }
+
+      if (filters.length > 0) {
+        query = query.where(and(...filters));
+      }
+
+      const records = await query.orderBy(desc(attendance.checkInTime));
+
+      console.log("[Backend] Attendance records query:", {
+        userId,
+        startDate,
+        endDate,
+        recordCount: records.length
+      });
+
+      res.json(records);
+    } catch (error) {
+      console.error("[Backend] Error fetching attendance records:", error);
+      res.status(500).json({ message: "Error al obtener los registros de asistencia" });
+    }
+  });
+  
 
   // También actualizar la ruta de historial para incluir más detalles
   app.get("/api/attendance/history", async (req, res) => {
