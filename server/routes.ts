@@ -370,6 +370,57 @@ export function registerRoutes(app: Express): Server {
     res.json(updated);
   });
 
+  // Rutas de asistencia para usuarios específicos (admin y el propio usuario)
+  app.get("/api/attendance/user", async (req, res) => {
+    if (!req.user) return res.sendStatus(401);
+    const { userId, startDate, endDate } = req.query;
+
+    // Verificar permisos - solo admin puede ver otros usuarios
+    if (req.user.role !== "admin" && parseInt(userId as string) !== req.user.id) {
+      return res.sendStatus(403);
+    }
+
+    try {
+      let start, end;
+
+      if (startDate && endDate) {
+        // If dates are provided, use them
+        start = new Date(startDate.toString());
+        end = new Date(endDate.toString());
+
+        // Set the time to start and end of day
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 59, 999);
+      } else {
+        // If no dates provided, use current month
+        start = startOfMonth(new Date());
+        end = endOfMonth(new Date());
+      }
+
+      // Validate that dates are valid
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        return res.status(400).json({ message: "Fechas inválidas" });
+      }
+
+      const history = await db.query.attendance.findMany({
+        where: and(
+          eq(attendance.userId, parseInt(userId as string)),
+          gte(attendance.checkInTime, start),
+          lte(attendance.checkInTime, end)
+        ),
+        with: {
+          location: true
+        },
+        orderBy: [attendance.checkInTime]
+      });
+
+      res.json(history);
+    } catch (error) {
+      console.error("Error fetching user attendance history:", error);
+      res.status(500).json({ message: "Error al obtener el historial de asistencia" });
+    }
+  });
+
   app.get("/api/attendance/history", async (req, res) => {
     if (!req.user) return res.sendStatus(401);
     const { startDate, endDate } = req.query;

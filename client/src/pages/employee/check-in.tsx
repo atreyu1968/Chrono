@@ -90,7 +90,8 @@ export default function EmployeeCheckIn() {
     },
   });
 
-  useEffect(() => {
+  // Solo activar la geolocalización cuando el usuario la necesite
+  const getLocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => setCoordinates(position.coords),
@@ -103,11 +104,11 @@ export default function EmployeeCheckIn() {
         }
       );
     }
-  }, []);
+  };
 
   return (
     <EmployeeLayout>
-      <div className="max-w-md mx-auto">
+      <div className="max-w-md mx-auto py-8">
         <Card>
           <CardHeader>
             <CardTitle>Fichar Entrada/Salida</CardTitle>
@@ -136,8 +137,14 @@ export default function EmployeeCheckIn() {
 
                 <Button
                   className="w-full"
-                  onClick={() => checkInMutation.mutate()}
-                  disabled={!coordinates || !location || checkInMutation.isPending}
+                  variant="default"
+                  onClick={() => {
+                    getLocation();
+                    if (coordinates) {
+                      checkInMutation.mutate();
+                    }
+                  }}
+                  disabled={!location || checkInMutation.isPending}
                 >
                   <LogIn className="mr-2 h-4 w-4" />
                   {checkInMutation.isPending ? "Procesando..." : "Registrar Entrada"}
@@ -146,9 +153,9 @@ export default function EmployeeCheckIn() {
             ) : (
               <Button
                 className="w-full"
+                variant="destructive"
                 onClick={() => checkOutMutation.mutate()}
                 disabled={checkOutMutation.isPending}
-                variant="secondary"
               >
                 <LogOut className="mr-2 h-4 w-4" />
                 {checkOutMutation.isPending ? "Procesando..." : "Registrar Salida"}
