@@ -13,6 +13,7 @@ import {
   Building2,
   MessageSquare,
   Bell,
+  Calendar as CalendarIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -182,6 +183,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
     { icon: MapPin, label: "Ubicaciones", href: "/admin/locations" },
     { icon: Users, label: "Usuarios", href: "/admin/users" },
     { icon: Building2, label: "Departamentos", href: "/admin/departments" },
+    { icon: CalendarIcon, label: "Días Festivos", href: "/admin/holidays" },
     {
       icon: MessageSquare,
       label: "Mensajes",
