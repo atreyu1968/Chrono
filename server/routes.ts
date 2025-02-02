@@ -329,6 +329,9 @@ export function registerRoutes(app: Express): Server {
     if (!req.user) return res.sendStatus(401);
 
     try {
+      console.log("[Schedules] Starting schedule update for user:", req.user.id);
+      console.log("[Schedules] Received schedules:", req.body.schedules);
+
       // Eliminar horarios existentes
       await db
         .delete(userSchedules)
@@ -336,6 +339,16 @@ export function registerRoutes(app: Express): Server {
 
       // Insertar nuevos horarios
       const { schedules } = req.body;
+
+      if (!Array.isArray(schedules)) {
+        console.log("[Schedules] Error: schedules is not an array");
+        return res.status(400).json({ 
+          message: "El formato de los horarios es inválido"
+        });
+      }
+
+      console.log("[Schedules] Processing schedules:", schedules);
+
       const insertedSchedules = await db
         .insert(userSchedules)
         .values(
@@ -344,14 +357,19 @@ export function registerRoutes(app: Express): Server {
             weekday: parseInt(schedule.weekday),
             startTime: schedule.startTime,
             endTime: schedule.endTime,
+            enabled: schedule.enabled ?? true
           }))
         )
         .returning();
 
+      console.log("[Schedules] Successfully inserted schedules:", insertedSchedules);
       res.json(insertedSchedules);
     } catch (error) {
-      console.error("Error updating schedules:", error);
-      res.status(500).json({ message: "Error al actualizar los horarios" });
+      console.error("[Schedules] Error updating schedules:", error);
+      res.status(500).json({ 
+        message: "Error al actualizar los horarios",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
   
@@ -411,18 +429,21 @@ export function registerRoutes(app: Express): Server {
     const today = new Date();
 
     try {
+      console.log("[Check-in] Starting check-in process for user:", req.user.id);
+
       // 1. Verificar si es un día festivo
-      const [holiday] = await db
-        .select({
-          id: holidays.id,
-          name: holidays.name,
-          type: holidays.type,
-          date: holidays.date
-        })
-        .from(holidays)
-        .where(eq(holidays.date, today));
+      const holiday = await db.query.holidays.findFirst({
+        where: eq(holidays.date, today),
+        columns: {
+          id: true,
+          name: true,
+          type: true,
+          date: true
+        }
+      });
 
       if (holiday) {
+        console.log("[Check-in] Holiday found:", holiday.name);
         return res.status(400).json({ 
           message: "Hoy es festivo", 
           holiday: {
@@ -433,32 +454,30 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-      // Resto del código permanece igual
+      // 2. Verificar horario
       const weekday = today.getDay();
-      const [schedule] = await db
-        .select()
-        .from(userSchedules)
-        .where(
-          and(
-            eq(userSchedules.userId, req.user.id),
-            eq(userSchedules.weekday, weekday),
-            eq(userSchedules.enabled, true)
-          )
-        );
+      const schedule = await db.query.userSchedules.findFirst({
+        where: and(
+          eq(userSchedules.userId, req.user.id),
+          eq(userSchedules.weekday, weekday),
+          eq(userSchedules.enabled, true)
+        )
+      });
 
       if (!schedule) {
+        console.log("[Check-in] No schedule found for user:", req.user.id);
         return res.status(400).json({ 
           message: "No tienes horario configurado para hoy o el día está deshabilitado"
         });
       }
 
-      // Verificar la ubicación
-      const [location] = await db
-        .select()
-        .from(locations)
-        .where(eq(locations.id, locationId));
+      // 3. Verificar ubicación
+      const location = await db.query.locations.findFirst({
+        where: eq(locations.id, locationId)
+      });
 
       if (!location) {
+        console.log("[Check-in] Location not found:", locationId);
         return res.status(404).json({ message: "Ubicación no encontrada" });
       }
 
@@ -470,6 +489,7 @@ export function registerRoutes(app: Express): Server {
       );
 
       if (distance > location.radius) {
+        console.log("[Check-in] User too far from location. Distance:", distance, "Radius:", location.radius);
         return res.status(400).json({ 
           message: "No estás dentro del rango permitido para fichar",
           distance,
@@ -477,27 +497,26 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-      // Determinar si es tarde
-      let status = "present";
-      const scheduleStart = parseISO(`${format(today, 'yyyy-MM-dd')}T${schedule.startTime}`);
+      // 4. Determinar estado
       const now = new Date();
+      const scheduleStart = parseISO(`${format(today, 'yyyy-MM-dd')}T${schedule.startTime}`);
+      const status = now > addMinutes(scheduleStart, 5) ? "late" : "present";
 
-      if (now > addMinutes(scheduleStart, 5)) {
-        status = "late";
-      }
-
-      // Registrar la asistencia
+      // 5. Registrar asistencia
+      console.log("[Check-in] Inserting attendance record");
       const [checkIn] = await db
         .insert(attendance)
         .values({
           userId: req.user.id,
-          locationId,
+          locationId: locationId,
           checkInTime: now,
-          status,
+          status: status,
         })
         .returning();
 
-      // Devolver respuesta detallada
+      console.log("[Check-in] Successfully created attendance record:", checkIn.id);
+
+      // 6. Preparar respuesta
       const response = {
         ...checkIn,
         schedule: {
@@ -513,8 +532,11 @@ export function registerRoutes(app: Express): Server {
 
       res.json(response);
     } catch (error) {
-      console.error("Error during check-in:", error);
-      res.status(500).json({ message: "Error al registrar la entrada" });
+      console.error("[Check-in] Error during check-in:", error);
+      res.status(500).json({ 
+        message: "Error al registrar la entrada",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 
@@ -978,7 +1000,6 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 
   return R * c; // Distancia en metros
 }
-
 
 function startOfMonth(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), 1);
