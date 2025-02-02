@@ -46,6 +46,8 @@ const settingsSchema = z.object({
   animationsEnabled: z.boolean(),
   animationSpeed: z.number().min(0).max(2),
   sidebarCollapsed: z.boolean(),
+  autoCheckIn: z.boolean().default(false),
+  autoCheckOut: z.boolean().default(false),
   schedules: z.array(z.object({
     weekday: z.string(),
     startTime: z.string(),
@@ -74,6 +76,8 @@ export default function SettingsPage() {
       animationsEnabled: true,
       animationSpeed: 1,
       sidebarCollapsed: false,
+      autoCheckIn: false,
+      autoCheckOut: false,
       schedules: schedules || weekdays.map(day => ({
         weekday: day.value,
         startTime: "09:00",
@@ -243,6 +247,48 @@ export default function SettingsPage() {
                         <FormLabel className="text-base">Barra Lateral Colapsada</FormLabel>
                         <FormDescription>
                           Mantén la barra lateral minimizada por defecto
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="autoCheckIn"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-base">Fichaje Automático de Entrada</FormLabel>
+                        <FormDescription>
+                          Fichar entrada automáticamente al obtener la ubicación
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="autoCheckOut"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-base">Fichaje Automático de Salida</FormLabel>
+                        <FormDescription>
+                          Fichar salida automáticamente al pulsar el botón de obtener ubicación
                         </FormDescription>
                       </div>
                       <FormControl>

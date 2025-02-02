@@ -25,6 +25,10 @@ export default function EmployeeCheckIn() {
     queryKey: ["/api/locations"],
   });
 
+  const { data: settings } = useQuery({
+    queryKey: ["/api/user/settings"],
+  });
+
   // Query para verificar si hay un registro de entrada sin salida
   const { data: attendance } = useQuery<any[]>({
     queryKey: ["/api/attendance/history", {
@@ -97,7 +101,6 @@ export default function EmployeeCheckIn() {
     },
   });
 
-  // Solo activar la geolocalización cuando el usuario la necesite
   const getLocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -107,6 +110,10 @@ export default function EmployeeCheckIn() {
             title: "Ubicación obtenida",
             description: "Ya puedes fichar tu entrada",
           });
+          // Si autoCheckIn está activado, realizar el fichaje automáticamente
+          if (settings?.autoCheckIn && location) {
+            checkInMutation.mutate();
+          }
         },
         (error) => {
           toast({
@@ -124,6 +131,17 @@ export default function EmployeeCheckIn() {
       getLocation();
     } else if (location) {
       checkInMutation.mutate();
+    }
+  };
+
+  const handleCheckOut = () => {
+    if (settings?.autoCheckOut) {
+      checkOutMutation.mutate();
+    } else {
+      // Mostrar confirmación antes de fichar salida
+      if (window.confirm('¿Estás seguro de que quieres fichar la salida?')) {
+        checkOutMutation.mutate();
+      }
     }
   };
 
@@ -170,7 +188,7 @@ export default function EmployeeCheckIn() {
               <Button
                 className="w-full"
                 variant="destructive"
-                onClick={() => checkOutMutation.mutate()}
+                onClick={handleCheckOut}
                 disabled={checkOutMutation.isPending}
               >
                 <LogOut className="mr-2 h-4 w-4" />
