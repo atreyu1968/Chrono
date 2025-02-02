@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, real, time, date } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, real, time, date, index } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
 
@@ -22,15 +22,17 @@ export const users = pgTable("users", {
   fullName: text("full_name").notNull(),
   email: text("email").unique().notNull(),
   phone: text("phone"),
-  // Keep both columns temporarily for compatibility
-  department: text("department"),
   departmentId: integer("department_id").references(() => departments.id),
   avatar: text("avatar_url"),
   emergencyContact: text("emergency_contact"),
   emergencyPhone: text("emergency_phone"),
   biometricToken: text("biometric_token"),
   pin: text("pin")
-});
+}, (table) => ({
+  departmentIdIdx: index("user_department_id_idx").on(table.departmentId),
+  usernameIdx: index("user_username_idx").on(table.username),
+  emailIdx: index("user_email_idx").on(table.email)
+}));
 
 export const locations = pgTable("locations", {
   id: serial("id").primaryKey(),
@@ -41,13 +43,22 @@ export const locations = pgTable("locations", {
   radius: integer("radius").default(500).notNull()
 });
 
+export const attendanceStatus = pgTable("attendance_status", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  code: text("code", { enum: ["present", "absent", "late"] }).notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
 export const attendance = pgTable("attendance", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id).notNull(),
-  locationId: integer("location_id").references(() => locations.id).notNull(),
+  locationId: integer("location_id").references(() => locations.id),
+  statusId: integer("status_id").references(() => attendanceStatus.id).notNull(),
   checkInTime: timestamp("check_in_time").notNull(),
   checkOutTime: timestamp("check_out_time"),
-  status: text("status", { enum: ["present", "absent", "late"] }).notNull(),
   isManualEntry: boolean("is_manual_entry").default(false),
   incidenceType: text("incidence_type", { 
     enum: ["forgotten_check_in", "forgotten_check_out", "other"] 
@@ -57,7 +68,13 @@ export const attendance = pgTable("attendance", {
   approvedAt: timestamp("approved_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
-});
+}, (table) => ({
+  userIdIdx: index("attendance_user_id_idx").on(table.userId),
+  locationIdIdx: index("attendance_location_id_idx").on(table.locationId),
+  statusIdIdx: index("attendance_status_id_idx").on(table.statusId),
+  checkInTimeIdx: index("attendance_check_in_time_idx").on(table.checkInTime),
+  userLocationIdx: index("attendance_user_location_idx").on(table.userId, table.locationId)
+}));
 
 export const messages = pgTable("messages", {
   id: serial("id").primaryKey(),
@@ -66,7 +83,11 @@ export const messages = pgTable("messages", {
   content: text("content").notNull(),
   sentAt: timestamp("sent_at").defaultNow().notNull(),
   read: boolean("read").default(false).notNull()
-});
+}, (table) => ({
+  fromUserIdIdx: index("message_from_user_id_idx").on(table.fromUserId),
+  toUserIdIdx: index("message_to_user_id_idx").on(table.toUserId),
+  sentAtIdx: index("message_sent_at_idx").on(table.sentAt)
+}));
 
 export const userSettings = pgTable("user_settings", {
   id: serial("id").primaryKey(),
@@ -77,9 +98,12 @@ export const userSettings = pgTable("user_settings", {
   animationSpeed: real("animation_speed").default(1).notNull(),
   sidebarCollapsed: boolean("sidebar_collapsed").default(false).notNull(),
   compactMode: boolean("compact_mode").default(false),
+  singleCheckInPerDay: boolean("single_check_in_per_day").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
-});
+}, (table) => ({
+  userIdIdx: index("user_settings_user_id_idx").on(table.userId)
+}));
 
 export const userSchedules = pgTable("user_schedules", {
   id: serial("id").primaryKey(),
@@ -131,6 +155,10 @@ export const locationRelations = relations(locations, ({ many }) => ({
   attendance: many(attendance)
 }));
 
+export const attendanceStatusRelations = relations(attendanceStatus, ({ many }) => ({
+  records: many(attendance)
+}));
+
 export const attendanceRelations = relations(attendance, ({ one }) => ({
   user: one(users, {
     fields: [attendance.userId],
@@ -139,6 +167,10 @@ export const attendanceRelations = relations(attendance, ({ one }) => ({
   location: one(locations, {
     fields: [attendance.locationId],
     references: [locations.id]
+  }),
+  status: one(attendanceStatus, {
+    fields: [attendance.statusId],
+    references: [attendanceStatus.id]
   })
 }));
 
@@ -184,6 +216,8 @@ export const insertUserScheduleSchema = createInsertSchema(userSchedules);
 export const selectUserScheduleSchema = createSelectSchema(userSchedules);
 export const insertHolidaySchema = createInsertSchema(holidays);
 export const selectHolidaySchema = createSelectSchema(holidays);
+export const insertAttendanceStatusSchema = createInsertSchema(attendanceStatus);
+export const selectAttendanceStatusSchema = createSelectSchema(attendanceStatus);
 
 export type InsertDepartment = typeof departments.$inferInsert;
 export type SelectDepartment = typeof departments.$inferSelect;
@@ -201,3 +235,5 @@ export type InsertUserSchedule = typeof userSchedules.$inferInsert;
 export type SelectUserSchedule = typeof userSchedules.$inferSelect;
 export type InsertHoliday = typeof holidays.$inferInsert;
 export type SelectHoliday = typeof holidays.$inferSelect;
+export type InsertAttendanceStatus = typeof attendanceStatus.$inferInsert;
+export type SelectAttendanceStatus = typeof attendanceStatus.$inferSelect;

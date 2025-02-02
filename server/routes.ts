@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { setupWebSocket } from "./websocket";
 import { db } from "@db";
-import { locations, attendance, messages, users, userSettings, departments, userSchedules, holidays } from "@db/schema";
+import { locations, attendance, messages, users, userSettings, departments, userSchedules, holidays, attendanceStatus } from "@db/schema";
 import { eq, and, gte, lte, isNull, or, desc } from "drizzle-orm";
 import fileUpload from "express-fileupload";
 import path from "path";
@@ -710,7 +710,10 @@ export function registerRoutes(app: Express): Server {
           id: attendance.id,
           checkInTime: attendance.checkInTime,
           checkOutTime: attendance.checkOutTime,
-          status: attendance.status,
+          status: {
+            code: attendanceStatus.code,
+            name: attendanceStatus.name
+          },
           location: {
             id: locations.id,
             name: locations.name,
@@ -719,11 +722,11 @@ export function registerRoutes(app: Express): Server {
             id: users.id,
             fullName: users.fullName,
             username: users.username,
-            department: users.department,
             departmentId: users.departmentId
           }
         })
         .from(attendance)
+        .innerJoin(attendanceStatus, eq(attendance.statusId, attendanceStatus.id))
         .leftJoin(locations, eq(attendance.locationId, locations.id))
         .leftJoin(users, eq(attendance.userId, users.id));
 
