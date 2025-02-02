@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, LogIn, LogOut, MapPin, Calendar as CalendarIcon } from "lucide-react";
+import { MapPin, Calendar as CalendarIcon, CheckCircle2, XCircle } from "lucide-react";
 import EmployeeLayout from "@/components/layout/employee-layout";
 import type { SelectAttendance, SelectLocation } from "@db/schema";
 import { DateRange } from "react-day-picker";
@@ -22,6 +22,14 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export default function AttendancePage() {
   const today = new Date();
@@ -56,7 +64,6 @@ export default function AttendancePage() {
       <div className="container mx-auto py-8">
         <div className="grid gap-8 md:grid-cols-[1fr,400px]">
           <div className="space-y-6">
-            {/* Date Range Selector */}
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -101,56 +108,67 @@ export default function AttendancePage() {
               </CardHeader>
               <CardContent>
                 {attendance && attendance.length > 0 ? (
-                  <div className="space-y-6">
-                    {attendance.map((record) => (
-                      <div key={record.id} className="space-y-4 bg-slate-50 p-4 rounded-lg border">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="flex items-center gap-2 text-green-600">
-                            <LogIn className="h-4 w-4" />
-                            <div>
-                              <span className="text-sm text-slate-500">Entrada</span>
-                              <p className="font-medium">
-                                {format(new Date(record.checkInTime), "HH:mm")}
-                              </p>
-                            </div>
-                          </div>
-                          {record.checkOutTime && (
-                            <div className="flex items-center gap-2 text-red-600">
-                              <LogOut className="h-4 w-4" />
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Fecha</TableHead>
+                          <TableHead>Centro</TableHead>
+                          <TableHead>Horario</TableHead>
+                          <TableHead>Estado</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {attendance.map((record) => (
+                          <TableRow key={record.id}>
+                            <TableCell>
                               <div>
-                                <span className="text-sm text-slate-500">Salida</span>
-                                <p className="font-medium">
-                                  {format(new Date(record.checkOutTime), "HH:mm")}
-                                </p>
+                                <div className="font-medium">
+                                  {format(new Date(record.checkInTime), "dd/MM/yyyy")}
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  {format(new Date(record.checkInTime), "EEEE", { locale: es })}
+                                </div>
                               </div>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 text-blue-600">
-                          <MapPin className="h-4 w-4" />
-                          <div>
-                            <span className="text-sm text-slate-500">Ubicación</span>
-                            <p className="font-medium">{record.location.name}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2 text-slate-600">
-                            <Clock className="h-4 w-4" />
-                            <span className="text-sm">Estado</span>
-                          </div>
-                          <Badge
-                            variant={record.status === "present" ? "default" : "destructive"}
-                            className="capitalize"
-                          >
-                            {record.status === "present" ? "Puntual" : "Tarde"}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <MapPin className="h-4 w-4 text-muted-foreground" />
+                                <span>{record.location.name}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1">
+                                <span>{format(new Date(record.checkInTime), "HH:mm")}</span>
+                                <span>-</span>
+                                <span>
+                                  {record.checkOutTime
+                                    ? format(new Date(record.checkOutTime), "HH:mm")
+                                    : "--:--"}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {record.status === "present" ? (
+                                <Badge className="bg-green-500 hover:bg-green-600">
+                                  <CheckCircle2 className="mr-1 h-3 w-3" />
+                                  Puntual
+                                </Badge>
+                              ) : (
+                                <Badge variant="destructive">
+                                  <XCircle className="mr-1 h-3 w-3" />
+                                  Retraso
+                                </Badge>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
                   </div>
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
-                    <Clock className="h-8 w-8 mx-auto mb-4 opacity-50" />
+                    <Calendar className="h-8 w-8 mx-auto mb-4 opacity-50" />
                     <p>No hay registros para el período seleccionado</p>
                   </div>
                 )}
