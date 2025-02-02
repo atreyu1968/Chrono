@@ -353,6 +353,54 @@ export function registerRoutes(app: Express): Server {
       res.status(500).json({ message: "Error al actualizar los horarios" });
     }
   });
+  
+  app.get("/api/admin/user/:userId/schedules", async (req, res) => {
+    if (req.user?.role !== "admin") return res.sendStatus(403);
+
+    try {
+      const schedules = await db
+        .select()
+        .from(userSchedules)
+        .where(eq(userSchedules.userId, parseInt(req.params.userId)))
+        .orderBy(userSchedules.weekday);
+
+      res.json(schedules);
+    } catch (error) {
+      console.error("Error fetching user schedules:", error);
+      res.status(500).json({ message: "Error al obtener los horarios" });
+    }
+  });
+
+  app.post("/api/admin/user/:userId/schedules", async (req, res) => {
+    if (req.user?.role !== "admin") return res.sendStatus(403);
+
+    try {
+      // Eliminar horarios existentes
+      await db
+        .delete(userSchedules)
+        .where(eq(userSchedules.userId, parseInt(req.params.userId)));
+
+      // Insertar nuevos horarios
+      const { schedules } = req.body;
+      const insertedSchedules = await db
+        .insert(userSchedules)
+        .values(
+          schedules.map((schedule: any) => ({
+            userId: parseInt(req.params.userId),
+            weekday: parseInt(schedule.weekday),
+            startTime: schedule.startTime,
+            endTime: schedule.endTime,
+            enabled: schedule.enabled
+          }))
+        )
+        .returning();
+
+      res.json(insertedSchedules);
+    } catch (error) {
+      console.error("Error updating user schedules:", error);
+      res.status(500).json({ message: "Error al actualizar los horarios" });
+    }
+  });
 
   // Attendance routes
   app.post("/api/attendance/check-in", async (req, res) => {

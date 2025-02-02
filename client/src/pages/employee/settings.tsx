@@ -52,7 +52,8 @@ const settingsSchema = z.object({
   schedules: z.array(z.object({
     weekday: z.string(),
     startTime: z.string(),
-    endTime: z.string()
+    endTime: z.string(),
+    enabled: z.boolean().default(true)
   }))
 });
 
@@ -82,7 +83,8 @@ export default function SettingsPage() {
       schedules: schedules || weekdays.map(day => ({
         weekday: day.value,
         startTime: "09:00",
-        endTime: "18:00"
+        endTime: "18:00",
+        enabled: true
       }))
     },
   });
@@ -319,42 +321,64 @@ export default function SettingsPage() {
                     <div className="space-y-4">
                       <h3 className="text-lg font-medium">Horario Laboral</h3>
                       <p className="text-sm text-muted-foreground">
-                        Configura tu horario de trabajo para cada día de la semana
+                        Configura los días que necesitas fichar y tu horario de trabajo
                       </p>
 
                       {weekdays.map((day, index) => (
-                        <div key={day.value} className="grid grid-cols-3 gap-4 items-center">
-                          <div className="font-medium">{day.label}</div>
-                          <FormField
-                            control={form.control}
-                            name={`schedules.${index}.startTime`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormControl>
-                                  <Input
-                                    type="time"
-                                    {...field}
-                                    className="w-full"
-                                  />
-                                </FormControl>
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={form.control}
-                            name={`schedules.${index}.endTime`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormControl>
-                                  <Input
-                                    type="time"
-                                    {...field}
-                                    className="w-full"
-                                  />
-                                </FormControl>
-                              </FormItem>
-                            )}
-                          />
+                        <div key={day.value} className="space-y-2">
+                          <div className="flex items-center justify-between rounded-lg border p-3">
+                            <div className="font-medium">{day.label}</div>
+                            <FormField
+                              control={form.control}
+                              name={`schedules.${index}.enabled`}
+                              render={({ field }) => (
+                                <FormItem className="flex items-center space-x-2">
+                                  <FormControl>
+                                    <Switch
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                    />
+                                  </FormControl>
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                          {form.watch(`schedules.${index}.enabled`) && (
+                            <div className="grid grid-cols-2 gap-4 ml-4">
+                              <FormField
+                                control={form.control}
+                                name={`schedules.${index}.startTime`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Entrada</FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        type="time"
+                                        {...field}
+                                        className="w-full"
+                                      />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+                              <FormField
+                                control={form.control}
+                                name={`schedules.${index}.endTime`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Salida</FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        type="time"
+                                        {...field}
+                                        className="w-full"
+                                      />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
