@@ -892,8 +892,7 @@ export function registerRoutes(app: Express): Server {
     if (req.user?.role !== "admin") return res.sendStatus(403);
 
     try {
-      const [department] = await db
-        .insert(departments)
+      const [department] = await db.insert(departments)
         .values({
           name: req.body.name,
           description: req.body.description,
@@ -992,6 +991,167 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Ruta para registro manual de asistencia (usuarios y admin)
+  app.post("/api/attendance/manual", async (req, res) => {
+    if (!req.user) return res.sendStatus(401);
+
+    try {
+      const { 
+        userId, 
+        checkInTime, 
+        checkOutTime, 
+        locationId, 
+        incidenceType,
+        incidenceDescription 
+      } = req.body;
+
+      // Si es un usuario normal, solo puede registrar sus propias asistencias
+      if (req.user.role !== "admin" && userId !== req.user.id) {
+        return res.status(403).json({ 
+          message: "Solo puedes registrar tus propias asistencias" 
+        });
+      }
+
+      console.log("[Manual Check] Starting manual attendance registration", {
+        userId,
+        checkInTime,
+        checkOutTime,
+        locationId,
+        isAdmin: req.user.role === "admin"
+      });
+
+      // Validar que el usuario existe
+      const user = await db.query.users.findFirst({
+        where: eq(users.id, userId)
+      });
+
+      if (!user) {
+        return res.status(404).json({ message: "Usuario no encontrado" });
+      }
+
+      // Validar que la ubicación existe
+      const location = await db.query.locations.findFirst({
+        where: eq(locations.id, locationId)
+      });
+
+      if (!location) {
+        return res.status(404).json({ message: "Ubicación no encontrada" });
+      }
+
+      // Validar que no haya solapamiento con otros registros
+      const checkInDate = new Date(checkInTime);
+      const checkOutDate = checkOutTime ? new Date(checkOutTime) : null;
+
+      const overlapping = await db.query.attendance.findFirst({
+        where: and(
+          eq(attendance.userId, userId),
+          or(
+            and(
+              lte(attendance.checkInTime, checkInDate),
+              isNull(attendance.checkOutTime)
+            ),
+            and(
+              lte(attendance.checkInTime, checkInDate),
+              gte(attendance.checkOutTime, checkInDate)
+            ),
+            checkOutDate ? and(
+              lte(attendance.checkInTime, checkOutDate),
+              gte(attendance.checkOutTime, checkOutDate)
+            ) : undefined
+          )
+        )
+      });
+
+      if (overlapping) {
+        return res.status(400).json({
+          message: "Ya existe un registro que se solapa con el período especificado"
+        });
+      }
+
+      // Determinar si es aprobado automáticamente (solo para admin)
+      const isApproved = req.user.role === "admin";
+
+      // Registrar la asistencia manual
+      const [record] = await db
+        .insert(attendance)
+        .values({
+          userId,
+          locationId,
+          checkInTime: checkInDate,
+          checkOutTime: checkOutDate,
+          status: "present", // Por defecto presente, el admin puede cambiar después
+          isManualEntry: true,
+          incidenceType: req.user.role !== "admin" ? incidenceType : null,
+          incidenceDescription: req.user.role !== "admin" ? incidenceDescription : null,
+          approvedById: isApproved ? req.user.id : null,
+          approvedAt: isApproved ? new Date() : null,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
+
+      console.log("[Manual Check] Successfully created manual attendance record:", record.id);
+
+      // Preparar mensaje de respuesta según el rol
+      const message = req.user.role === "admin" 
+        ? "Registro manual creado correctamente"
+        : "Registro manual creado correctamente. Pendiente de aprobación por un administrador";
+
+      res.json({
+        record,
+        message,
+        requiresApproval: !isApproved
+      });
+
+    } catch (error) {
+      console.error("[Manual Check] Error creating manual attendance:", error);
+      res.status(500).json({
+        message: "Error al registrar la asistencia manual",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Nueva ruta para aprobar/rechazar incidencias (solo admin)
+  app.patch("/api/attendance/:id/approve", async (req, res) => {
+    if (!req.user || req.user.role !== "admin") {
+      return res.sendStatus(403);
+    }
+
+    try {
+      const { approved } = req.body;
+      const attendanceId = parseInt(req.params.id);
+
+      const [record] = await db
+        .update(attendance)
+        .set({
+          approvedById: approved ? req.user.id : null,
+          approvedAt: approved ? new Date() : null,
+          updatedAt: new Date()
+        })
+        .where(eq(attendance.id, attendanceId))
+        .returning();
+
+      if (!record) {
+        return res.status(404).json({ message: "Registro no encontrado" });
+      }
+
+      res.json({
+        record,
+        message: approved 
+          ? "Incidencia aprobada correctamente" 
+          : "Incidencia rechazada"
+      });
+
+    } catch (error) {
+      console.error("[Approve] Error updating attendance record:", error);
+      res.status(500).json({
+        message: "Error al actualizar el registro",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+  
   return httpServer;
 }
 

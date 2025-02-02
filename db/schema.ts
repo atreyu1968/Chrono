@@ -47,7 +47,16 @@ export const attendance = pgTable("attendance", {
   locationId: integer("location_id").references(() => locations.id).notNull(),
   checkInTime: timestamp("check_in_time").notNull(),
   checkOutTime: timestamp("check_out_time"),
-  status: text("status", { enum: ["present", "absent", "late"] }).notNull()
+  status: text("status", { enum: ["present", "absent", "late"] }).notNull(),
+  isManualEntry: boolean("is_manual_entry").default(false),
+  incidenceType: text("incidence_type", { 
+    enum: ["forgotten_check_in", "forgotten_check_out", "other"] 
+  }),
+  incidenceDescription: text("incidence_description"),
+  approvedById: integer("approved_by_id").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
 
 export const messages = pgTable("messages", {
