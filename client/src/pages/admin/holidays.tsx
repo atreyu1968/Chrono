@@ -107,7 +107,7 @@ export default function HolidaysPage() {
   return (
     <AdminLayout>
       <div className="container mx-auto py-8">
-        <div className="grid gap-8 md:grid-cols-[1fr,400px]">
+        <div className="grid gap-8 md:grid-cols-[2fr,1fr]">
           <Card>
             <CardHeader>
               <CardTitle>Calendario de Días Festivos</CardTitle>
@@ -116,26 +116,30 @@ export default function HolidaysPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={setSelectedDate}
-                locale={es}
-                modifiers={{
-                  holiday: (date) => {
-                    const dateStr = format(date, "yyyy-MM-dd");
-                    return dateStr in holidayDates;
-                  }
-                }}
-                modifiersStyles={{
-                  holiday: {
-                    backgroundColor: "#fee2e2",
-                    color: "#ef4444",
-                    fontWeight: "bold"
-                  }
-                }}
-                className="rounded-md border w-full"
-              />
+              <div className="grid grid-cols-2 gap-4">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={setSelectedDate}
+                  locale={es}
+                  numberOfMonths={6}
+                  showOutsideDays={false}
+                  modifiers={{
+                    holiday: (date) => {
+                      const dateStr = format(date, "yyyy-MM-dd");
+                      return dateStr in holidayDates;
+                    }
+                  }}
+                  modifiersStyles={{
+                    holiday: {
+                      backgroundColor: "#fee2e2",
+                      color: "#ef4444",
+                      fontWeight: "bold"
+                    }
+                  }}
+                  className="rounded-md border"
+                />
+              </div>
             </CardContent>
           </Card>
 
