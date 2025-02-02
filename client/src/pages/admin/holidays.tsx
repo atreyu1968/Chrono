@@ -108,15 +108,15 @@ export default function HolidaysPage() {
     <AdminLayout>
       <div className="container mx-auto py-8">
         <div className="grid gap-8 md:grid-cols-[2fr,1fr]">
-          <Card>
+          <Card className="overflow-hidden">
             <CardHeader>
               <CardTitle>Calendario de Días Festivos</CardTitle>
               <CardDescription>
                 Selecciona una fecha para añadir o eliminar días festivos
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4">
+            <CardContent className="p-4">
+              <div className="grid grid-cols-3 gap-2">
                 <Calendar
                   mode="single"
                   selected={selectedDate}
@@ -124,6 +124,7 @@ export default function HolidaysPage() {
                   locale={es}
                   numberOfMonths={6}
                   showOutsideDays={false}
+                  className="rounded-md border [&_.rdp-months]:grid [&_.rdp-months]:grid-cols-3 [&_.rdp-months]:gap-2 [&_.rdp-month]:w-full [&_.rdp-table]:w-full [&_.rdp-cell]:p-0 [&_.rdp-button]:w-8 [&_.rdp-button]:h-8 [&_.rdp-caption]:mb-1"
                   modifiers={{
                     holiday: (date) => {
                       const dateStr = format(date, "yyyy-MM-dd");
@@ -137,7 +138,6 @@ export default function HolidaysPage() {
                       fontWeight: "bold"
                     }
                   }}
-                  className="rounded-md border"
                 />
               </div>
             </CardContent>
