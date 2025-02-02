@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, real, time } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, real, time, date } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
 
@@ -82,6 +82,16 @@ export const userSchedules = pgTable("user_schedules", {
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
 
+export const holidays = pgTable("holidays", {
+  id: serial("id").primaryKey(),
+  date: date("date").notNull(),
+  name: text("name").notNull(),
+  type: text("type", { enum: ["nacional", "regional", "local"] }).notNull(),
+  createdById: integer("created_by_id").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
 export const departmentRelations = relations(departments, ({ many }) => ({
   users: many(users)
 }));
@@ -141,6 +151,13 @@ export const userSettingsRelations = relations(userSettings, ({ one }) => ({
   })
 }));
 
+export const holidayRelations = relations(holidays, ({ one }) => ({
+    createdBy: one(users, {
+      fields: [holidays.createdById],
+      references: [users.id]
+    })
+  }));
+
 export const insertDepartmentSchema = createInsertSchema(departments);
 export const selectDepartmentSchema = createSelectSchema(departments);
 
@@ -156,6 +173,8 @@ export const insertUserSettingsSchema = createInsertSchema(userSettings);
 export const selectUserSettingsSchema = createSelectSchema(userSettings);
 export const insertUserScheduleSchema = createInsertSchema(userSchedules);
 export const selectUserScheduleSchema = createSelectSchema(userSchedules);
+export const insertHolidaySchema = createInsertSchema(holidays);
+export const selectHolidaySchema = createSelectSchema(holidays);
 
 export type InsertDepartment = typeof departments.$inferInsert;
 export type SelectDepartment = typeof departments.$inferSelect;
@@ -171,3 +190,5 @@ export type InsertUserSettings = typeof userSettings.$inferInsert;
 export type SelectUserSettings = typeof userSettings.$inferSelect;
 export type InsertUserSchedule = typeof userSchedules.$inferInsert;
 export type SelectUserSchedule = typeof userSchedules.$inferSelect;
+export type InsertHoliday = typeof holidays.$inferInsert;
+export type SelectHoliday = typeof holidays.$inferSelect;

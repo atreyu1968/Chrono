@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { setupWebSocket } from "./websocket";
 import { db } from "@db";
-import { locations, attendance, messages, users, userSettings, departments, userSchedules } from "@db/schema";
+import { locations, attendance, messages, users, userSettings, departments, userSchedules, holidays } from "@db/schema";
 import { eq, and, gte, lte, isNull, or, desc } from "drizzle-orm";
 import fileUpload from "express-fileupload";
 import path from "path";
@@ -804,6 +804,55 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error("Error deleting department:", error);
       res.status(500).json({ message: "Error al eliminar el departamento" });
+    }
+  });
+
+  // Holiday routes (admin only)
+  app.get("/api/holidays", async (req, res) => {
+    try {
+      const allHolidays = await db
+        .select()
+        .from(holidays)
+        .orderBy(holidays.date);
+      res.json(allHolidays);
+    } catch (error) {
+      console.error("Error fetching holidays:", error);
+      res.status(500).json({ message: "Error al obtener los días festivos" });
+    }
+  });
+
+  app.post("/api/holidays", async (req, res) => {
+    if (req.user?.role !== "admin") return res.sendStatus(403);
+
+    try {
+      const [holiday] = await db
+        .insert(holidays)
+        .values({
+          ...req.body,
+          createdById: req.user.id,
+          updatedAt: new Date()
+        })
+        .returning();
+
+      res.json(holiday);
+    } catch (error) {
+      console.error("Error creating holiday:", error);
+      res.status(500).json({ message: "Error al crear el día festivo" });
+    }
+  });
+
+  app.delete("/api/holidays/:id", async (req, res) => {
+    if (req.user?.role !== "admin") return res.sendStatus(403);
+
+    try {
+      await db
+        .delete(holidays)
+        .where(eq(holidays.id, parseInt(req.params.id)));
+
+      res.sendStatus(200);
+    } catch (error) {
+      console.error("Error deleting holiday:", error);
+      res.status(500).json({ message: "Error al eliminar el día festivo" });
     }
   });
 
