@@ -40,6 +40,7 @@ import { z } from "zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { SelectUser } from "@db/schema";
 import { UserPlus, Edit2, Mail, BarChart2 } from "lucide-react";
+import { Link } from "wouter";
 import {
   Card,
   CardContent,
@@ -494,8 +495,8 @@ export default function UsersPage() {
                           form.reset({
                             username: user.username,
                             fullName: user.fullName,
-                             email: user.email,
-                             phone: user.phone || '',
+                            email: user.email,
+                            phone: user.phone || '',
                             department: user.department,
                             employeeType: user.employeeType,
                             medusaUser: user.medusaUser || '',
@@ -524,15 +525,11 @@ export default function UsersPage() {
                       >
                         <Mail className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          // Navegar a la página de estadísticas del usuario
-                        }}
-                      >
-                        <BarChart2 className="h-4 w-4" />
-                      </Button>
+                      <Link href={`/admin/users/${user.id}/attendance`}>
+                        <Button variant="ghost" size="icon">
+                          <BarChart2 className="h-4 w-4" />
+                        </Button>
+                      </Link>
                     </div>
                   </TableCell>
                 </TableRow>

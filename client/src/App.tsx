@@ -11,6 +11,7 @@ import AdminDashboard from "@/pages/admin/dashboard";
 import AdminLocations from "@/pages/admin/locations";
 import AdminUsers from "@/pages/admin/users";
 import AdminDepartments from "@/pages/admin/departments";
+import UserAttendancePage from "@/pages/admin/user-attendance";
 import EmployeeCheckIn from "@/pages/employee/check-in";
 import EmployeeAttendance from "@/pages/employee/attendance";
 import EmployeeSettings from "@/pages/employee/settings";
@@ -33,6 +34,7 @@ function Router() {
       <ProtectedRoute path="/admin/locations" component={AdminLocations} requireAdmin />
       <ProtectedRoute path="/admin/users" component={AdminUsers} requireAdmin />
       <ProtectedRoute path="/admin/departments" component={AdminDepartments} requireAdmin />
+      <ProtectedRoute path="/admin/users/:userId/attendance" component={UserAttendancePage} requireAdmin />
       <ProtectedRoute path="/check-in" component={EmployeeCheckIn} />
       <ProtectedRoute path="/attendance" component={EmployeeAttendance} />
       <ProtectedRoute path="/settings" component={EmployeeSettings} />
