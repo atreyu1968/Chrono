@@ -14,6 +14,7 @@ import {
   MessageSquare,
   Bell,
   Calendar as CalendarIcon,
+    Clock,
   Layout,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -184,6 +185,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
     { icon: MapPin, label: "Ubicaciones", href: "/admin/locations" },
     { icon: Users, label: "Usuarios", href: "/admin/users" },
     { icon: Building2, label: "Departamentos", href: "/admin/departments" },
+    { icon: Clock, label: "Registros de Asistencia", href: "/admin/attendance-records" },
     { icon: CalendarIcon, label: "Días Festivos", href: "/admin/holidays" },
     {
       icon: MessageSquare,
@@ -353,7 +355,6 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
                     )}
                   />
                   
-
                   <div className="space-y-4 pt-4 border-t">
                     <h4 className="font-medium">Cambiar Contraseña</h4>
                     <FormField
