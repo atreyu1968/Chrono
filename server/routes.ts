@@ -385,15 +385,30 @@ export function registerRoutes(app: Express): Server {
       }
 
       const history = await db
-        .select()
+        .select({
+          id: attendance.id,
+          userId: attendance.userId,
+          locationId: attendance.locationId,
+          checkInTime: attendance.checkInTime,
+          checkOutTime: attendance.checkOutTime,
+          status: attendance.status,
+          location: {
+            id: locations.id,
+            name: locations.name,
+          },
+        })
         .from(attendance)
+        .leftJoin(locations, eq(attendance.locationId, locations.id))
         .where(
           and(
             eq(attendance.userId, req.user.id),
             gte(attendance.checkInTime, start),
             lte(attendance.checkInTime, end)
           )
-        );
+        )
+        .orderBy(attendance.checkInTime);
+
+      console.log("Attendance history:", history); // Para debugging
 
       res.json(history);
     } catch (error) {
