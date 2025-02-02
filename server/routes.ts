@@ -384,29 +384,17 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ message: "Fechas inválidas" });
       }
 
-      const history = await db
-        .select({
-          id: attendance.id,
-          userId: attendance.userId,
-          locationId: attendance.locationId,
-          checkInTime: attendance.checkInTime,
-          checkOutTime: attendance.checkOutTime,
-          status: attendance.status,
-          location: {
-            id: locations.id,
-            name: locations.name,
-          },
-        })
-        .from(attendance)
-        .leftJoin(locations, eq(attendance.locationId, locations.id))
-        .where(
-          and(
-            eq(attendance.userId, req.user.id),
-            gte(attendance.checkInTime, start),
-            lte(attendance.checkInTime, end)
-          )
-        )
-        .orderBy(attendance.checkInTime);
+      const history = await db.query.attendance.findMany({
+        where: and(
+          eq(attendance.userId, req.user.id),
+          gte(attendance.checkInTime, start),
+          lte(attendance.checkInTime, end)
+        ),
+        with: {
+          location: true
+        },
+        orderBy: [attendance.checkInTime]
+      });
 
       console.log("Attendance history:", history); // Para debugging
 

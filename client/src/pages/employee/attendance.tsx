@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { es } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
@@ -11,14 +11,18 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Clock, LogIn, LogOut } from "lucide-react";
 import EmployeeLayout from "@/components/layout/employee-layout";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { SelectAttendance } from "@db/schema";
 
 export default function AttendancePage() {
   const [date, setDate] = useState<Date>(new Date());
   const monthStart = startOfMonth(date);
   const monthEnd = endOfMonth(date);
+  const { toast } = useToast();
 
   const { data: attendance } = useQuery<SelectAttendance[]>({
     queryKey: [
@@ -39,6 +43,32 @@ export default function AttendancePage() {
     }
     return acc;
   }, {} as Record<string, SelectAttendance>);
+
+  // Mutation para registrar la salida
+  const checkOutMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/attendance/check-out");
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/attendance/history"] });
+      toast({
+        title: "Salida registrada correctamente",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Verificar si hay un registro de entrada sin salida
+  const hasOpenCheckIn = attendance?.some(
+    (record) => !record.checkOutTime && new Date(record.checkInTime).toDateString() === new Date().toDateString()
+  );
 
   return (
     <EmployeeLayout>
@@ -69,6 +99,19 @@ export default function AttendancePage() {
                 }}
                 className="rounded-md border shadow-sm"
               />
+              {/* Botón de registro de salida */}
+              {hasOpenCheckIn && (
+                <div className="mt-4">
+                  <Button
+                    className="w-full"
+                    onClick={() => checkOutMutation.mutate()}
+                    disabled={checkOutMutation.isPending}
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    {checkOutMutation.isPending ? "Registrando salida..." : "Registrar Salida"}
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
 
