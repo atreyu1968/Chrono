@@ -14,6 +14,7 @@ import AdminDepartments from "@/pages/admin/departments";
 import AdminHolidays from "@/pages/admin/holidays";
 import AdminSettings from "@/pages/admin/settings";
 import UserAttendancePage from "@/pages/admin/user-attendance";
+import AttendanceRecordsPage from "@/pages/admin/attendance-records";
 import EmployeeCheckIn from "@/pages/employee/check-in";
 import EmployeeAttendance from "@/pages/employee/attendance";
 import EmployeeSettings from "@/pages/employee/settings";
@@ -40,6 +41,7 @@ function Router() {
       <ProtectedRoute path="/admin/holidays" component={AdminHolidays} requireAdmin />
       <ProtectedRoute path="/admin/settings" component={AdminSettings} requireAdmin />
       <ProtectedRoute path="/admin/users/:userId/attendance" component={UserAttendancePage} requireAdmin />
+      <ProtectedRoute path="/admin/attendance-records" component={AttendanceRecordsPage} requireAdmin />
       <ProtectedRoute path="/admin/messages" component={AdminMessages} requireAdmin />
       <ProtectedRoute path="/check-in" component={EmployeeCheckIn} />
       <ProtectedRoute path="/attendance" component={EmployeeAttendance} />
