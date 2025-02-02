@@ -54,6 +54,29 @@ export default function MessagesPage() {
     });
   }, [onMessage]);
 
+  // Marcar mensajes como leídos cuando se selecciona un usuario
+  const markAsReadMutation = useMutation({
+    mutationFn: async (messageId: number) => {
+      return apiRequest("PATCH", `/api/messages/${messageId}`, { read: true });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+    },
+  });
+
+  // Marcar mensajes como leídos cuando se selecciona un usuario
+  useEffect(() => {
+    if (selectedUser && messages) {
+      const unreadMessages = messages.filter(
+        m => m.fromUserId === selectedUser.id && m.toUserId === user?.id && !m.read
+      );
+
+      unreadMessages.forEach(message => {
+        markAsReadMutation.mutate(message.id);
+      });
+    }
+  }, [selectedUser, messages]);
+
   // Mutación para enviar mensajes
   const sendMessageMutation = useMutation({
     mutationFn: async () => {
@@ -104,30 +127,43 @@ export default function MessagesPage() {
               <CardTitle>Usuarios</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {users?.filter(u => u.id !== user?.id).map((u) => (
-                <Button
-                  key={u.id}
-                  variant="ghost"
-                  className={cn(
-                    "w-full flex items-center gap-3 justify-start p-2 hover:bg-slate-100",
-                    selectedUser?.id === u.id && "bg-slate-100"
-                  )}
-                  onClick={() => setSelectedUser(u)}
-                >
-                  <Avatar>
-                    <AvatarImage src={u.avatar || undefined} />
-                    <AvatarFallback>
-                      {u.fullName?.split(" ").map(n => n[0]).join("").toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="text-left">
-                    <p className="font-medium">{u.fullName}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {u.role === "admin" ? "Administrador" : "Empleado"}
-                    </p>
-                  </div>
-                </Button>
-              ))}
+              {users?.filter(u => u.id !== user?.id).map((u) => {
+                const unreadCount = messages?.filter(m => 
+                  m.fromUserId === u.id && 
+                  m.toUserId === user?.id && 
+                  !m.read
+                ).length || 0;
+
+                return (
+                  <Button
+                    key={u.id}
+                    variant="ghost"
+                    className={cn(
+                      "w-full flex items-center gap-3 justify-start p-2 hover:bg-slate-100",
+                      selectedUser?.id === u.id && "bg-slate-100"
+                    )}
+                    onClick={() => setSelectedUser(u)}
+                  >
+                    <Avatar>
+                      <AvatarImage src={u.avatar || undefined} />
+                      <AvatarFallback>
+                        {u.fullName?.split(" ").map(n => n[0]).join("").toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="text-left">
+                      <p className="font-medium">{u.fullName}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {u.role === "admin" ? "Administrador" : "Empleado"}
+                      </p>
+                      {unreadCount > 0 && (
+                        <span className="text-xs bg-primary text-primary-foreground rounded-full px-2 py-0.5">
+                          {unreadCount} nuevo(s)
+                        </span>
+                      )}
+                    </div>
+                  </Button>
+                );
+              })}
             </CardContent>
           </Card>
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import AdminLayout from "@/components/layout/admin-layout";
 import {
@@ -43,6 +43,19 @@ export default function MessagesPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
     },
   });
+
+  // Marcar mensajes como leídos cuando se selecciona un usuario
+  useEffect(() => {
+    if (selectedUserId && messages) {
+      const unreadMessages = messages.filter(
+        m => m.fromUserId === selectedUserId && m.toUserId === user?.id && !m.read
+      );
+
+      unreadMessages.forEach(message => {
+        markAsReadMutation.mutate(message.id);
+      });
+    }
+  }, [selectedUserId, messages]);
 
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
@@ -122,14 +135,7 @@ export default function MessagesPage() {
                         "w-full justify-start gap-2",
                         selectedUserId === u.id && "bg-primary/10"
                       )}
-                      onClick={() => {
-                        setSelectedUserId(u.id);
-                        messages?.forEach(m => {
-                          if (m.fromUserId === u.id && !m.read) {
-                            markAsReadMutation.mutate(m.id);
-                          }
-                        });
-                      }}
+                      onClick={() => setSelectedUserId(u.id)}
                     >
                       <div className="flex items-center gap-2 w-full">
                         <Avatar>
