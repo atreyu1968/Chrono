@@ -3,10 +3,11 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { setupWebSocket } from "./websocket";
 import { db } from "@db";
-import { locations, attendance, messages, users, userSettings, departments } from "@db/schema";
-import { eq, and, gte, lte, isNull, or } from "drizzle-orm";
+import { locations, attendance, messages, users, userSettings, departments, userSchedules } from "@db/schema";
+import { eq, and, gte, lte, isNull, or, desc } from "drizzle-orm";
 import fileUpload from "express-fileupload";
 import path from "path";
+import { addMinutes, parseISO, format } from "date-fns";
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
@@ -305,6 +306,54 @@ export function registerRoutes(app: Express): Server {
     res.sendStatus(200);
   });
 
+  // User Schedules routes
+  app.get("/api/user/schedules", async (req, res) => {
+    if (!req.user) return res.sendStatus(401);
+
+    try {
+      const schedules = await db
+        .select()
+        .from(userSchedules)
+        .where(eq(userSchedules.userId, req.user.id))
+        .orderBy(userSchedules.weekday);
+
+      res.json(schedules);
+    } catch (error) {
+      console.error("Error fetching schedules:", error);
+      res.status(500).json({ message: "Error al obtener los horarios" });
+    }
+  });
+
+  app.post("/api/user/schedules", async (req, res) => {
+    if (!req.user) return res.sendStatus(401);
+
+    try {
+      // Eliminar horarios existentes
+      await db
+        .delete(userSchedules)
+        .where(eq(userSchedules.userId, req.user.id));
+
+      // Insertar nuevos horarios
+      const { schedules } = req.body;
+      const insertedSchedules = await db
+        .insert(userSchedules)
+        .values(
+          schedules.map((schedule: any) => ({
+            userId: req.user!.id,
+            weekday: parseInt(schedule.weekday),
+            startTime: schedule.startTime,
+            endTime: schedule.endTime,
+          }))
+        )
+        .returning();
+
+      res.json(insertedSchedules);
+    } catch (error) {
+      console.error("Error updating schedules:", error);
+      res.status(500).json({ message: "Error al actualizar los horarios" });
+    }
+  });
+
   // Attendance routes
   app.post("/api/attendance/check-in", async (req, res) => {
     if (!req.user) return res.sendStatus(401);
@@ -328,14 +377,35 @@ export function registerRoutes(app: Express): Server {
       return res.status(400).json({ message: "No estás dentro del rango permitido para fichar" });
     }
 
-    const now = new Date();
-    // TODO: Implementar lógica para determinar si es tarde basado en horarios configurados
-    const status = "present";
+    // Obtener el horario del usuario para hoy
+    const today = new Date();
+    const weekday = today.getDay(); // 0-6, donde 0 es domingo
+
+    const [schedule] = await db
+      .select()
+      .from(userSchedules)
+      .where(
+        and(
+          eq(userSchedules.userId, req.user.id),
+          eq(userSchedules.weekday, weekday)
+        )
+      );
+
+    let status = "present";
+    if (schedule) {
+      const scheduleStart = parseISO(`${format(today, 'yyyy-MM-dd')}T${schedule.startTime}`);
+      const now = new Date();
+
+      // Si el usuario ficha más de 5 minutos después de su hora de entrada, se marca como tarde
+      if (now > addMinutes(scheduleStart, 5)) {
+        status = "late";
+      }
+    }
 
     const checkIn = await db.insert(attendance).values({
       userId: req.user.id,
       locationId,
-      checkInTime: now,
+      checkInTime: today,
       status
     }).returning();
 
@@ -375,8 +445,14 @@ export function registerRoutes(app: Express): Server {
     if (!req.user) return res.sendStatus(401);
     const { userId, startDate, endDate } = req.query;
 
+    // Validar que userId sea un número válido
+    const userIdNumber = parseInt(userId as string);
+    if (isNaN(userIdNumber)) {
+      return res.status(400).json({ message: "ID de usuario inválido" });
+    }
+
     // Verificar permisos - solo admin puede ver otros usuarios
-    if (req.user.role !== "admin" && parseInt(userId as string) !== req.user.id) {
+    if (req.user.role !== "admin" && userIdNumber !== req.user.id) {
       return res.sendStatus(403);
     }
 
@@ -404,14 +480,20 @@ export function registerRoutes(app: Express): Server {
 
       const history = await db.query.attendance.findMany({
         where: and(
-          eq(attendance.userId, parseInt(userId as string)),
+          eq(attendance.userId, userIdNumber),
           gte(attendance.checkInTime, start),
           lte(attendance.checkInTime, end)
         ),
         with: {
-          location: true
+          location: true,
+          user: {
+            columns: {
+              fullName: true,
+              username: true
+            }
+          }
         },
-        orderBy: [attendance.checkInTime]
+        orderBy: [desc(attendance.checkInTime)]
       });
 
       res.json(history);
@@ -485,9 +567,9 @@ export function registerRoutes(app: Express): Server {
       date: attendance.checkInTime,
       checkIns: attendance.id
     })
-    .from(attendance)
-    .where(gte(attendance.checkInTime, weekAgo))
-    .orderBy(attendance.checkInTime);
+      .from(attendance)
+      .where(gte(attendance.checkInTime, weekAgo))
+      .orderBy(attendance.checkInTime);
 
     // Group by date for trend
     const trendByDate = trend.reduce((acc: any[], curr) => {

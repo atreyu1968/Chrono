@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, real } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, real, time } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
 
@@ -72,8 +72,25 @@ export const userSettings = pgTable("user_settings", {
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
 
+export const userSchedules = pgTable("user_schedules", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  weekday: integer("weekday").notNull(), // 0-6, donde 0 es domingo
+  startTime: time("start_time").notNull(),
+  endTime: time("end_time").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
 export const departmentRelations = relations(departments, ({ many }) => ({
   users: many(users)
+}));
+
+export const userScheduleRelations = relations(userSchedules, ({ one }) => ({
+  user: one(users, {
+    fields: [userSchedules.userId],
+    references: [users.id]
+  })
 }));
 
 export const userRelations = relations(users, ({ many, one }) => ({
@@ -87,7 +104,8 @@ export const userRelations = relations(users, ({ many, one }) => ({
   department: one(departments, {
     fields: [users.departmentId],
     references: [departments.id],
-  })
+  }),
+  schedules: many(userSchedules)
 }));
 
 export const locationRelations = relations(locations, ({ many }) => ({
@@ -136,6 +154,8 @@ export const insertMessageSchema = createInsertSchema(messages);
 export const selectMessageSchema = createSelectSchema(messages);
 export const insertUserSettingsSchema = createInsertSchema(userSettings);
 export const selectUserSettingsSchema = createSelectSchema(userSettings);
+export const insertUserScheduleSchema = createInsertSchema(userSchedules);
+export const selectUserScheduleSchema = createSelectSchema(userSchedules);
 
 export type InsertDepartment = typeof departments.$inferInsert;
 export type SelectDepartment = typeof departments.$inferSelect;
@@ -149,3 +169,5 @@ export type InsertMessage = typeof messages.$inferInsert;
 export type SelectMessage = typeof messages.$inferSelect;
 export type InsertUserSettings = typeof userSettings.$inferInsert;
 export type SelectUserSettings = typeof userSettings.$inferSelect;
+export type InsertUserSchedule = typeof userSchedules.$inferInsert;
+export type SelectUserSchedule = typeof userSchedules.$inferSelect;

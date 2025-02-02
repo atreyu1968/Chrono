@@ -13,6 +13,7 @@ import {
   FormLabel,
 } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -26,6 +27,18 @@ import { useToast } from "@/hooks/use-toast";
 import EmployeeLayout from "@/components/layout/employee-layout";
 import { Fingerprint } from "lucide-react";
 import { startRegistration } from "@simplewebauthn/browser";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+
+const weekdays = [
+  { value: "0", label: "Domingo" },
+  { value: "1", label: "Lunes" },
+  { value: "2", label: "Martes" },
+  { value: "3", label: "Miércoles" },
+  { value: "4", label: "Jueves" },
+  { value: "5", label: "Viernes" },
+  { value: "6", label: "Sábado" },
+];
 
 const settingsSchema = z.object({
   theme: z.enum(["blue", "green", "purple", "orange"]),
@@ -33,6 +46,11 @@ const settingsSchema = z.object({
   animationsEnabled: z.boolean(),
   animationSpeed: z.number().min(0).max(2),
   sidebarCollapsed: z.boolean(),
+  schedules: z.array(z.object({
+    weekday: z.string(),
+    startTime: z.string(),
+    endTime: z.string()
+  }))
 });
 
 type SettingsFormValues = z.infer<typeof settingsSchema>;
@@ -44,6 +62,10 @@ export default function SettingsPage() {
     queryKey: ["/api/user/settings"],
   });
 
+  const { data: schedules } = useQuery({
+    queryKey: ["/api/user/schedules"],
+  });
+
   const form = useForm<SettingsFormValues>({
     resolver: zodResolver(settingsSchema),
     defaultValues: settings || {
@@ -52,15 +74,23 @@ export default function SettingsPage() {
       animationsEnabled: true,
       animationSpeed: 1,
       sidebarCollapsed: false,
+      schedules: schedules || weekdays.map(day => ({
+        weekday: day.value,
+        startTime: "09:00",
+        endTime: "18:00"
+      }))
     },
   });
 
   const mutation = useMutation({
     mutationFn: async (values: SettingsFormValues) => {
-      return apiRequest("PATCH", "/api/user/settings", values);
+      const { schedules, ...settingsData } = values;
+      await apiRequest("PATCH", "/api/user/settings", settingsData);
+      await apiRequest("POST", "/api/user/schedules", { schedules });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/user/settings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/schedules"] });
       toast({
         title: "Configuración actualizada",
         description: "Tus preferencias han sido guardadas correctamente.",
@@ -102,7 +132,7 @@ export default function SettingsPage() {
   return (
     <EmployeeLayout>
       <div className="container mx-auto max-w-2xl py-8">
-        <Card>
+        <Card className="mb-8">
           <CardHeader>
             <CardTitle>Configuración de la Interfaz</CardTitle>
           </CardHeader>
@@ -225,33 +255,76 @@ export default function SettingsPage() {
                   )}
                 />
 
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Horario Laboral</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Configura tu horario de trabajo para cada día de la semana
+                  </p>
+
+                  {weekdays.map((day, index) => (
+                    <div key={day.value} className="grid grid-cols-3 gap-4 items-center">
+                      <div className="font-medium">{day.label}</div>
+                      <FormField
+                        control={form.control}
+                        name={`schedules.${index}.startTime`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <Input
+                                type="time"
+                                {...field}
+                                className="w-full"
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`schedules.${index}.endTime`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <Input
+                                type="time"
+                                {...field}
+                                className="w-full"
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  ))}
+                </div>
+
                 <Button type="submit" className="w-full">
                   {mutation.isPending ? "Guardando..." : "Guardar Cambios"}
                 </Button>
               </form>
             </Form>
-
-            <div className="mt-8">
-              <h3 className="text-lg font-medium mb-4">Seguridad</h3>
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full"
-                onClick={() => biometricMutation.mutate()}
-                disabled={biometricMutation.isPending}
-              >
-                {biometricMutation.isPending ? (
-                  "Registrando..."
-                ) : (
-                  <>
-                    <Fingerprint className="mr-2 h-4 w-4" />
-                    Configurar Autenticación Biométrica
-                  </>
-                )}
-              </Button>
-            </div>
           </CardContent>
         </Card>
+
+        <div className="mt-8">
+          <h3 className="text-lg font-medium mb-4">Seguridad</h3>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={() => biometricMutation.mutate()}
+            disabled={biometricMutation.isPending}
+          >
+            {biometricMutation.isPending ? (
+              "Registrando..."
+            ) : (
+              <>
+                <Fingerprint className="mr-2 h-4 w-4" />
+                Configurar Autenticación Biométrica
+              </>
+            )}
+          </Button>
+        </div>
       </div>
     </EmployeeLayout>
   );
