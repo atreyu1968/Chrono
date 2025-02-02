@@ -689,6 +689,7 @@ export function registerRoutes(app: Express): Server {
         orderBy: [desc(attendance.checkInTime)]
       });
 
+      console.log("[Attendance] Found records:", history.length, "for user:", userIdNumber);
       res.json(history);
     } catch (error) {
       console.error("Error fetching user attendance history:", error);
