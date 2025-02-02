@@ -607,18 +607,18 @@ export function registerRoutes(app: Express): Server {
     if (!req.user) return res.sendStatus(401);
     const { userId, startDate, endDate } = req.query;
 
-    // Validar que userId sea un número válido
-    const userIdNumber = parseInt(userId as string);
-    if (isNaN(userIdNumber)) {
-      return res.status(400).json({ message: "ID de usuario inválido" });
-    }
-
-    // Verificar permisos - solo admin puede ver otros usuarios
-    if (req.user.role !== "admin" && userIdNumber !== req.user.id) {
-      return res.sendStatus(403);
-    }
-
     try {
+      // Validar que userId sea un número válido
+      const userIdNumber = userId ? parseInt(userId as string) : req.user.id;
+      if (isNaN(userIdNumber)) {
+        return res.status(400).json({ message: "ID de usuario inválido" });
+      }
+
+      // Verificar permisos - solo admin puede ver otros usuarios
+      if (req.user.role !== "admin" && userIdNumber !== req.user.id) {
+        return res.sendStatus(403);
+      }
+
       let start, end;
 
       if (startDate && endDate) {

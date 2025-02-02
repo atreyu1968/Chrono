@@ -41,7 +41,7 @@ export default function UserAttendancePage() {
     queryKey: [
       "/api/attendance/user",
       {
-        userId: Number(userId),
+        userId,
         startDate: date?.from ? format(date.from, "yyyy-MM-dd") : undefined,
         endDate: date?.to ? format(date.to, "yyyy-MM-dd") : undefined,
       },
@@ -89,7 +89,6 @@ export default function UserAttendancePage() {
         ) : (
           <div className="grid gap-8 md:grid-cols-[1fr,400px]">
             <div className="space-y-6">
-              {/* Date Range Selector */}
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
