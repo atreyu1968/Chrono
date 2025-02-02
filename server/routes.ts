@@ -376,17 +376,13 @@ export function registerRoutes(app: Express): Server {
 
     try {
       // Validate and parse dates
-      const start = new Date(startDate as string);
-      const end = new Date(endDate as string);
+      const start = new Date(`${startDate}T00:00:00`);
+      const end = new Date(`${endDate}T23:59:59`);
 
       // Validate that dates are valid
       if (isNaN(start.getTime()) || isNaN(end.getTime())) {
         return res.status(400).json({ message: "Fechas inválidas" });
       }
-
-      // Set the time to start and end of day respectively
-      start.setHours(0, 0, 0, 0);
-      end.setHours(23, 59, 59, 999);
 
       const history = await db
         .select()

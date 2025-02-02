@@ -24,8 +24,8 @@ export default function AttendancePage() {
     queryKey: [
       "/api/attendance/history",
       {
-        startDate: monthStart.toISOString(),
-        endDate: monthEnd.toISOString(),
+        startDate: format(monthStart, "yyyy-MM-dd"),
+        endDate: format(monthEnd, "yyyy-MM-dd"),
       },
     ],
   });
