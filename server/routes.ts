@@ -671,25 +671,34 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ message: "Fechas inválidas" });
       }
 
-      const history = await db.query.attendance.findMany({
-        where: and(
+      const history = await db
+        .select({
+          id: attendance.id,
+          userId: attendance.userId,
+          locationId: attendance.locationId,
+          checkInTime: attendance.checkInTime,
+          checkOutTime: attendance.checkOutTime,
+          status: attendance.status,
+          location: {
+            id: locations.id,
+            name: locations.name,
+            latitude: locations.latitude,
+            longitude: locations.longitude,
+            radius: locations.radius
+          }
+        })
+        .from(attendance)
+        .where(and(
           eq(attendance.userId, userIdNumber),
           gte(attendance.checkInTime, start),
           lte(attendance.checkInTime, end)
-        ),
-        with: {
-          location: true,
-          user: {
-            columns: {
-              fullName: true,
-              username: true
-            }
-          }
-        },
-        orderBy: [desc(attendance.checkInTime)]
-      });
+        ))
+        .leftJoin(locations, eq(attendance.locationId, locations.id))
+        .orderBy(desc(attendance.checkInTime));
 
       console.log("[Attendance] Found records:", history.length, "for user:", userIdNumber);
+      console.log("[Attendance] Query parameters:", { userIdNumber, start, end });
+
       res.json(history);
     } catch (error) {
       console.error("Error fetching user attendance history:", error);
