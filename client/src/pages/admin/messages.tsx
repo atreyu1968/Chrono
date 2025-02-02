@@ -63,6 +63,9 @@ export default function MessagesPage() {
 
   // Agrupar mensajes por usuario
   const messagesByUser = messages?.reduce((acc, message) => {
+    // Verificar que el mensaje y sus propiedades requeridas existan
+    if (!message?.from?.id || !message.from.fullName) return acc;
+
     const userId = message.from.id;
     if (!acc[userId]) {
       acc[userId] = {
@@ -74,7 +77,7 @@ export default function MessagesPage() {
     return acc;
   }, {} as Record<number, { user: Message["from"]; messages: Message[] }>);
 
-  const selectedUserMessages = selectedUserId ? messagesByUser?.[selectedUserId]?.messages : [];
+  const selectedUserMessages = selectedUserId && messagesByUser?.[selectedUserId]?.messages;
 
   return (
     <AdminLayout>
@@ -88,11 +91,11 @@ export default function MessagesPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {Object.values(messagesByUser || {}).map(({ user, messages }) => {
+                {Object.entries(messagesByUser || {}).map(([userId, { user, messages }]) => {
                   const unreadCount = messages.filter(m => !m.read).length;
                   return (
                     <Button
-                      key={user.id}
+                      key={userId}
                       variant="ghost"
                       className={cn(
                         "w-full justify-start",
@@ -132,11 +135,11 @@ export default function MessagesPage() {
 
           {/* Mensajes */}
           <Card>
-            {selectedUserId ? (
+            {selectedUserId && messagesByUser?.[selectedUserId] ? (
               <>
                 <CardHeader>
                   <CardTitle>
-                    Chat con {messagesByUser?.[selectedUserId]?.user.fullName}
+                    Chat con {messagesByUser[selectedUserId].user.fullName}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
