@@ -375,9 +375,21 @@ export function registerRoutes(app: Express): Server {
     const { startDate, endDate } = req.query;
 
     try {
-      // Validate and parse dates
-      const start = new Date(`${startDate}T00:00:00`);
-      const end = new Date(`${endDate}T23:59:59`);
+      let start, end;
+
+      if (startDate && endDate) {
+        // If dates are provided, use them
+        start = new Date(startDate.toString());
+        end = new Date(endDate.toString());
+
+        // Set the time to start and end of day
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 59, 999);
+      } else {
+        // If no dates provided, use current month
+        start = startOfMonth(new Date());
+        end = endOfMonth(new Date());
+      }
 
       // Validate that dates are valid
       if (isNaN(start.getTime()) || isNaN(end.getTime())) {
@@ -395,8 +407,6 @@ export function registerRoutes(app: Express): Server {
         },
         orderBy: [attendance.checkInTime]
       });
-
-      console.log("Attendance history:", history); // Para debugging
 
       res.json(history);
     } catch (error) {
@@ -632,4 +642,13 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
   return R * c; // Distancia en metros
+}
+
+
+function startOfMonth(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function endOfMonth(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth() + 1, 0);
 }
