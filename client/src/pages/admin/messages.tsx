@@ -35,7 +35,7 @@ export default function MessagesPage() {
 
   const { data: messages } = useQuery<Message[]>({
     queryKey: ["/api/messages"],
-    refetchInterval: 5000, // Actualizar cada 5 segundos
+    refetchInterval: 30000, // Refresca cada 30 segundos
   });
 
   const markAsReadMutation = useMutation({
@@ -61,7 +61,7 @@ export default function MessagesPage() {
     },
   });
 
-  // Agrupar mensajes por usuario
+  // Group messages by user
   const messagesByUser = messages?.reduce((acc, message) => {
     if (!message || !message.from) return acc;
 
@@ -76,16 +76,13 @@ export default function MessagesPage() {
     return acc;
   }, {} as Record<number, { user: Message["from"]; messages: Message[] }>);
 
-  const selectedUserMessages = selectedUserId && messagesByUser?.[selectedUserId]?.messages;
-
-  console.log('Messages:', messages); // Debug log
-  console.log('Messages by user:', messagesByUser); // Debug log
+  const selectedDateRecords = selectedUserId && messagesByUser?.[selectedUserId]?.messages;
 
   return (
     <AdminLayout>
       <div className="container mx-auto py-8">
         <h1 className="text-3xl font-bold mb-6">Mensajes</h1>
-        <div className="grid grid-cols-[300px,1fr] gap-6">
+        <div className="grid gap-8 md:grid-cols-[300px,1fr]">
           {/* Lista de usuarios */}
           <Card>
             <CardHeader>
@@ -101,7 +98,7 @@ export default function MessagesPage() {
                     key={userId}
                     variant="ghost"
                     className={cn(
-                      "w-full justify-start",
+                      "w-full justify-start gap-2",
                       selectedUserId === Number(userId) && "bg-primary/10"
                     )}
                     onClick={() => {
@@ -153,7 +150,7 @@ export default function MessagesPage() {
                 <CardContent>
                   <div className="space-y-4">
                     <div className="h-[400px] overflow-y-auto space-y-4 mb-4">
-                      {selectedUserMessages?.map((message) => (
+                      {selectedDateRecords?.map((message) => (
                         <div
                           key={message.id}
                           className={cn(
