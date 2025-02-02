@@ -37,7 +37,6 @@ export default function UserAttendancePage() {
     enabled: !!userId,
   });
 
-  // Después obtener su asistencia usando el ID del usuario
   const { data: attendance, isLoading: isLoadingAttendance } = useQuery<(SelectAttendance & { location: SelectLocation })[]>({
     queryKey: [
       "/api/attendance/user",
