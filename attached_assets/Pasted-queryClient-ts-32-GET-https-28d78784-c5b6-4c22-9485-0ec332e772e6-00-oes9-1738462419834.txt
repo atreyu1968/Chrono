@@ -1,0 +1,63 @@
+queryClient.ts:32 
+        
+        
+       GET https://28d78784-c5b6-4c22-9485-0ec332e772e6-00-oes999q2rhhh.janeway.replit.dev/api/attendance/user 400 (Bad Request)
+(anónimo) @ queryClient.ts:32
+fetchFn @ @tanstack_react-query.js?v=5c16d61c:842
+run @ @tanstack_react-query.js?v=5c16d61c:493
+start @ @tanstack_react-query.js?v=5c16d61c:535
+fetch @ @tanstack_react-query.js?v=5c16d61c:929
+executeFetch_fn @ @tanstack_react-query.js?v=5c16d61c:2243
+onSubscribe @ @tanstack_react-query.js?v=5c16d61c:1930
+subscribe @ @tanstack_react-query.js?v=5c16d61c:24
+(anónimo) @ @tanstack_react-query.js?v=5c16d61c:3056
+subscribeToStore @ chunk-RPCDYKBN.js?v=5c16d61c:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=5c16d61c:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=5c16d61c:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=5c16d61c:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=5c16d61c:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=5c16d61c:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=5c16d61c:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=5c16d61c:19447
+commitRootImpl @ chunk-RPCDYKBN.js?v=5c16d61c:19416
+commitRoot @ chunk-RPCDYKBN.js?v=5c16d61c:19277
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=5c16d61c:18895
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=5c16d61c:9119
+(anónimo) @ chunk-RPCDYKBN.js?v=5c16d61c:18627
+setTimeout
+scheduleFn @ @tanstack_react-query.js?v=5c16d61c:554
+flush @ @tanstack_react-query.js?v=5c16d61c:568
+batch @ @tanstack_react-query.js?v=5c16d61c:586
+dispatch_fn @ @tanstack_react-query.js?v=5c16d61c:999
+setData @ @tanstack_react-query.js?v=5c16d61c:697
+onSuccess @ @tanstack_react-query.js?v=5c16d61c:900
+resolve @ @tanstack_react-query.js?v=5c16d61c:455
+Promise.then
+run @ @tanstack_react-query.js?v=5c16d61c:497
+start @ @tanstack_react-query.js?v=5c16d61c:535
+fetch @ @tanstack_react-query.js?v=5c16d61c:929
+executeFetch_fn @ @tanstack_react-query.js?v=5c16d61c:2243
+onSubscribe @ @tanstack_react-query.js?v=5c16d61c:1930
+subscribe @ @tanstack_react-query.js?v=5c16d61c:24
+(anónimo) @ @tanstack_react-query.js?v=5c16d61c:3056
+subscribeToStore @ chunk-RPCDYKBN.js?v=5c16d61c:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=5c16d61c:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=5c16d61c:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=5c16d61c:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=5c16d61c:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=5c16d61c:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=5c16d61c:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=5c16d61c:19447
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=5c16d61c:18868
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=5c16d61c:9119
+commitRootImpl @ chunk-RPCDYKBN.js?v=5c16d61c:19432
+commitRoot @ chunk-RPCDYKBN.js?v=5c16d61c:19277
+finishConcurrentRender @ chunk-RPCDYKBN.js?v=5c16d61c:18805
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=5c16d61c:18718
+workLoop @ chunk-RPCDYKBN.js?v=5c16d61c:197
+flushWork @ chunk-RPCDYKBN.js?v=5c16d61c:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=5c16d61c:384Entender este errorAI
+queryClient.ts:32 
+        
+        
+       GET https://28d78784-c5b6-4c22-9485-0ec332e772e6-00-oes999q2rhhh.janeway.replit.dev/api/holidays 500 (Internal Server Error)

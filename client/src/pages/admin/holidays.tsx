@@ -20,7 +20,6 @@ import { Input } from "@/components/ui/input";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -46,7 +45,7 @@ export default function HolidaysPage() {
   const { toast } = useToast();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
 
-  const { data: holidays } = useQuery({
+  const { data: holidays } = useQuery<any[]>({
     queryKey: ["/api/holidays"],
   });
 
@@ -107,7 +106,7 @@ export default function HolidaysPage() {
   return (
     <AdminLayout>
       <div className="container mx-auto py-8">
-        <div className="grid gap-8 md:grid-cols-[2fr,1fr]">
+        <div className="grid gap-8 md:grid-cols-[3fr,1fr]">
           <Card className="overflow-hidden">
             <CardHeader>
               <CardTitle>Calendario de Días Festivos</CardTitle>
@@ -115,8 +114,8 @@ export default function HolidaysPage() {
                 Selecciona una fecha para añadir o eliminar días festivos
               </CardDescription>
             </CardHeader>
-            <CardContent className="p-4">
-              <div className="grid grid-cols-3 gap-2">
+            <CardContent className="p-6">
+              <div className="grid grid-cols-2 gap-4">
                 <Calendar
                   mode="single"
                   selected={selectedDate}
@@ -124,7 +123,7 @@ export default function HolidaysPage() {
                   locale={es}
                   numberOfMonths={6}
                   showOutsideDays={false}
-                  className="rounded-md border [&_.rdp-months]:grid [&_.rdp-months]:grid-cols-3 [&_.rdp-months]:gap-2 [&_.rdp-month]:w-full [&_.rdp-table]:w-full [&_.rdp-cell]:p-0 [&_.rdp-button]:w-8 [&_.rdp-button]:h-8 [&_.rdp-caption]:mb-1"
+                  className="rounded-md border [&_.rdp-months]:grid [&_.rdp-months]:grid-cols-2 [&_.rdp-months]:gap-4 [&_.rdp-month]:w-full [&_.rdp-table]:w-full [&_.rdp-cell]:p-0 [&_.rdp-button]:w-9 [&_.rdp-button]:h-9 [&_.rdp-caption]:mb-4 [&_.rdp-nav]:mb-2"
                   modifiers={{
                     holiday: (date) => {
                       const dateStr = format(date, "yyyy-MM-dd");

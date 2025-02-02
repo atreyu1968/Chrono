@@ -88,7 +88,6 @@ export const holidays = pgTable("holidays", {
   date: date("date").notNull(),
   name: text("name").notNull(),
   type: text("type", { enum: ["nacional", "regional", "local"] }).notNull(),
-  createdById: integer("created_by_id").references(() => users.id).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
@@ -154,7 +153,7 @@ export const userSettingsRelations = relations(userSettings, ({ one }) => ({
 
 export const holidayRelations = relations(holidays, ({ one }) => ({
     createdBy: one(users, {
-      fields: [holidays.createdById],
+      fields: [holidays.id],
       references: [users.id]
     })
   }));
