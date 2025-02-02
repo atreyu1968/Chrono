@@ -51,15 +51,6 @@ export default function UserAttendancePage() {
       },
     ],
     enabled: !!userId,
-    onSuccess: (data) => {
-      console.log("[Frontend] Successfully received attendance data:", {
-        recordCount: data?.length,
-        firstRecord: data?.[0]
-      });
-    },
-    onError: (error) => {
-      console.error("[Frontend] Error fetching attendance:", error);
-    }
   });
 
   console.log("[Frontend] Attendance query state:", {
@@ -68,16 +59,20 @@ export default function UserAttendancePage() {
     hasData: !!attendance,
     recordsCount: attendance?.length
   });
-  
-  // Group attendance records by date
-  const attendanceDates = attendance?.reduce((acc, record) => {
-    const dateKey = format(new Date(record.checkInTime), "yyyy-MM-dd");
-    if (!acc[dateKey]) {
-      acc[dateKey] = [];
-    }
-    acc[dateKey].push(record);
-    return acc;
-  }, {} as Record<string, (SelectAttendance & { location: SelectLocation })[]>);
+
+  if (!attendance) {
+    console.log("[Frontend] No attendance data available");
+    return (
+      <AdminLayout>
+        <div className="container mx-auto py-8">
+          <div className="text-center py-8">
+            <Clock className="h-8 w-8 mx-auto mb-4 opacity-50" />
+            <p>No hay registros disponibles</p>
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
@@ -111,48 +106,10 @@ export default function UserAttendancePage() {
             <div className="space-y-6">
               <Card>
                 <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle>Registros de Asistencia</CardTitle>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "justify-start text-left font-normal",
-                            !date && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {date?.from ? (
-                            date.to ? (
-                              <>
-                                {format(date.from, "dd/MM/yyyy")} -{" "}
-                                {format(date.to, "dd/MM/yyyy")}
-                              </>
-                            ) : (
-                              format(date.from, "dd/MM/yyyy")
-                            )
-                          ) : (
-                            <span>Seleccionar fechas</span>
-                          )}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="end">
-                        <Calendar
-                          initialFocus
-                          mode="range"
-                          defaultMonth={date?.from}
-                          selected={date}
-                          onSelect={(newDate: DateRange | undefined) => setDate(newDate)}
-                          numberOfMonths={2}
-                          locale={es}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
+                  <CardTitle>Registros de Asistencia</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {attendance && attendance.length > 0 ? (
+                  {attendance.length > 0 ? (
                     <div className="space-y-6">
                       {attendance.map((record) => (
                         <div key={record.id} className="space-y-4 bg-slate-50 p-4 rounded-lg border">
@@ -182,7 +139,7 @@ export default function UserAttendancePage() {
                             <MapPin className="h-4 w-4" />
                             <div>
                               <span className="text-sm text-slate-500">Ubicación</span>
-                              <p className="font-medium">{record.location.name}</p>
+                              <p className="font-medium">{record.location?.name}</p>
                             </div>
                           </div>
                           <div className="flex items-center justify-between">
@@ -209,38 +166,6 @@ export default function UserAttendancePage() {
                 </CardContent>
               </Card>
             </div>
-
-            {/* Calendar View */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Vista Mensual</CardTitle>
-                <CardDescription>
-                  Los días con registros están marcados
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Calendar
-                  mode="range"
-                  selected={date}
-                  onSelect={(newDate: DateRange | undefined) => setDate(newDate)}
-                  locale={es}
-                  modifiers={{
-                    marked: (date) => {
-                      const dateStr = format(date, "yyyy-MM-dd");
-                      return Boolean(attendanceDates?.[dateStr]?.length);
-                    },
-                  }}
-                  modifiersStyles={{
-                    marked: {
-                      fontWeight: "bold",
-                      border: "2px solid var(--primary)",
-                      borderRadius: "8px",
-                    },
-                  }}
-                  className="rounded-md border shadow-sm"
-                />
-              </CardContent>
-            </Card>
           </div>
         )}
       </div>
