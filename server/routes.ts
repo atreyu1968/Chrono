@@ -342,7 +342,7 @@ export function registerRoutes(app: Express): Server {
 
       if (!Array.isArray(schedules)) {
         console.log("[Schedules] Error: schedules is not an array");
-        return res.status(400).json({ 
+        return res.status(400).json({
           message: "El formato de los horarios es inválido"
         });
       }
@@ -366,7 +366,7 @@ export function registerRoutes(app: Express): Server {
       res.json(insertedSchedules);
     } catch (error) {
       console.error("[Schedules] Error updating schedules:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: "Error al actualizar los horarios",
         error: error instanceof Error ? error.message : "Unknown error"
       });
@@ -444,8 +444,8 @@ export function registerRoutes(app: Express): Server {
 
       if (holiday) {
         console.log("[Check-in] Holiday found:", holiday.name);
-        return res.status(400).json({ 
-          message: `Hoy es festivo: ${holiday.name} (${holiday.type})`, 
+        return res.status(400).json({
+          message: `Hoy es festivo: ${holiday.name} (${holiday.type})`,
           holiday: {
             name: holiday.name,
             type: holiday.type,
@@ -466,7 +466,7 @@ export function registerRoutes(app: Express): Server {
       if (!schedule) {
         console.log("[Check-in] No schedule found for user:", req.user.id);
         const dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
-        return res.status(400).json({ 
+        return res.status(400).json({
           message: `No tienes un horario configurado para los ${dias[weekday]}`,
           type: "no_schedule"
         });
@@ -474,7 +474,7 @@ export function registerRoutes(app: Express): Server {
 
       if (!schedule.enabled) {
         console.log("[Check-in] Schedule disabled for user:", req.user.id);
-        return res.status(400).json({ 
+        return res.status(400).json({
           message: `El horario para los ${dias[weekday]} está deshabilitado`,
           type: "schedule_disabled"
         });
@@ -499,19 +499,44 @@ export function registerRoutes(app: Express): Server {
 
       if (distance > location.radius) {
         console.log("[Check-in] User too far from location. Distance:", distance, "Radius:", location.radius);
-        return res.status(400).json({ 
+        return res.status(400).json({
           message: `No estás dentro del rango permitido para fichar (${Math.round(distance)}m del centro, máximo ${location.radius}m)`,
           distance,
           maxRadius: location.radius
         });
       }
 
-      // 4. Determinar estado
+       // 4. Verificar si ya existe un registro para hoy si la configuración está activa
+      const settings = await db.query.userSettings.findFirst({
+        where: eq(userSettings.userId, req.user.id)
+      });
+
+      if (settings?.singleCheckInPerDay) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const existingRecord = await db.query.attendance.findFirst({
+          where: and(
+            eq(attendance.userId, req.user.id),
+            gte(attendance.checkInTime, today)
+          )
+        });
+
+        if (existingRecord) {
+          console.log("[Check-in] User already has a record for today");
+          return res.status(400).json({ 
+            message: "Ya tienes un registro de asistencia para hoy. Solo se permite un registro por día según la configuración actual.",
+            type: "single_check_in_limit"
+          });
+        }
+      }
+
+      // 5. Determinar estado
       const now = new Date();
       const scheduleStart = parseISO(`${format(today, 'yyyy-MM-dd')}T${schedule.startTime}`);
       const status = now > addMinutes(scheduleStart, 5) ? "late" : "present";
 
-      // 5. Registrar asistencia
+      // 6. Registrar asistencia
       console.log("[Check-in] Inserting attendance record");
       const [checkIn] = await db
         .insert(attendance)
@@ -525,7 +550,7 @@ export function registerRoutes(app: Express): Server {
 
       console.log("[Check-in] Successfully created attendance record:", checkIn.id);
 
-      // 6. Preparar respuesta
+      // 7. Preparar respuesta
       const response = {
         ...checkIn,
         schedule: {
@@ -542,7 +567,7 @@ export function registerRoutes(app: Express): Server {
       res.json(response);
     } catch (error) {
       console.error("[Check-in] Error during check-in:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: "Error al registrar la entrada",
         error: error instanceof Error ? error.message : "Unknown error"
       });
@@ -718,8 +743,8 @@ export function registerRoutes(app: Express): Server {
               date: holiday.date
             } : null,
             checkInFormatted: format(new Date(record.checkInTime), 'HH:mm'),
-            checkOutFormatted: record.checkOutTime 
-              ? format(new Date(record.checkOutTime), 'HH:mm') 
+            checkOutFormatted: record.checkOutTime
+              ? format(new Date(record.checkOutTime), 'HH:mm')
               : null
           };
         })
@@ -846,6 +871,12 @@ export function registerRoutes(app: Express): Server {
   app.patch("/api/user/settings", async (req, res) => {
     if (!req.user) return res.sendStatus(401);
 
+    // Solo permitir que los administradores modifiquen singleCheckInPerDay
+    const updateData = { ...req.body };
+    if ('singleCheckInPerDay' in updateData && req.user.role !== 'admin') {
+      delete updateData.singleCheckInPerDay;
+    }
+
     const [existingSettings] = await db
       .select()
       .from(userSettings)
@@ -854,10 +885,9 @@ export function registerRoutes(app: Express): Server {
 
     let updatedSettings;
     if (existingSettings) {
-      [updatedSettings] = await db
-        .update(userSettings)
+      [updatedSettings] = await db.update(userSettings)
         .set({
-          ...req.body,
+          ...updateData,
           updatedAt: new Date(),
         })
         .where(eq(userSettings.userId, req.user.id))
@@ -867,7 +897,7 @@ export function registerRoutes(app: Express): Server {
         .insert(userSettings)
         .values({
           userId: req.user.id,
-          ...req.body,
+          ...updateData,
           createdAt: new Date(),
           updatedAt: new Date(),
         })
