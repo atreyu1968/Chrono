@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { format, startOfMonth, endOfMonth, parseISO } from "date-fns";
+import { format, startOfMonth, endOfMonth } from "date-fns";
 import { es } from "date-fns/locale";
 import AdminLayout from "@/components/layout/admin-layout";
 import {
@@ -25,22 +25,24 @@ export default function UserAttendancePage() {
 
   const { data: user } = useQuery<SelectUser>({
     queryKey: ["/api/users", userId],
+    enabled: !!userId,
   });
 
   const { data: attendance } = useQuery<(SelectAttendance & { location: SelectLocation })[]>({
     queryKey: [
-      "/api/users/attendance",
+      "/api/attendance/history",
       {
         userId,
         startDate: format(monthStart, "yyyy-MM-dd"),
         endDate: format(monthEnd, "yyyy-MM-dd"),
       },
     ],
+    enabled: !!userId,
   });
 
   // Group attendance records by date
   const attendanceDates = attendance?.reduce((acc, record) => {
-    const dateKey = new Date(record.checkInTime).toISOString().split('T')[0];
+    const dateKey = format(new Date(record.checkInTime), "yyyy-MM-dd");
     if (!acc[dateKey]) {
       acc[dateKey] = [];
     }
@@ -63,7 +65,7 @@ export default function UserAttendancePage() {
           </Link>
           <h1 className="text-2xl font-bold">Historial de Asistencia</h1>
           <p className="text-muted-foreground">
-            Usuario: {user?.fullName}
+            Usuario: {user?.fullName || 'Cargando...'}
           </p>
         </div>
 
@@ -118,7 +120,7 @@ export default function UserAttendancePage() {
                           <div>
                             <span className="text-sm text-slate-500">Entrada</span>
                             <p className="font-medium">
-                              {format(parseISO(record.checkInTime), "HH:mm")}
+                              {format(new Date(record.checkInTime), "HH:mm")}
                             </p>
                           </div>
                         </div>
@@ -128,7 +130,7 @@ export default function UserAttendancePage() {
                             <div>
                               <span className="text-sm text-slate-500">Salida</span>
                               <p className="font-medium">
-                                {format(parseISO(record.checkOutTime), "HH:mm")}
+                                {format(new Date(record.checkOutTime), "HH:mm")}
                               </p>
                             </div>
                           </div>
