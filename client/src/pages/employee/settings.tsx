@@ -23,9 +23,10 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import EmployeeLayout from "@/components/layout/employee-layout";
-import { Fingerprint } from "lucide-react";
+import { Fingerprint, Layout, Clock, Shield } from "lucide-react";
 import { startRegistration } from "@simplewebauthn/browser";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -104,14 +105,9 @@ export default function SettingsPage() {
 
   const biometricMutation = useMutation({
     mutationFn: async () => {
-      // 1. Get registration options from server
       const optionsRes = await apiRequest("GET", "/api/auth/biometric/register");
       const options = await optionsRes.json();
-
-      // 2. Create credentials
       const credential = await startRegistration(options);
-
-      // 3. Verify with server
       return apiRequest("POST", "/api/auth/biometric/verify-registration", credential);
     },
     onSuccess: () => {
@@ -135,205 +131,115 @@ export default function SettingsPage() {
 
   return (
     <EmployeeLayout>
-      <div className="container mx-auto max-w-2xl py-8">
-        <Card className="mb-8">
+      <div className="container mx-auto max-w-4xl py-8">
+        <Card>
           <CardHeader>
-            <CardTitle>Configuración de la Interfaz</CardTitle>
+            <CardTitle>Configuración</CardTitle>
           </CardHeader>
           <CardContent>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <FormField
-                  control={form.control}
-                  name="theme"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Tema de Colores</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecciona un tema" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="blue">Azul</SelectItem>
-                          <SelectItem value="green">Verde</SelectItem>
-                          <SelectItem value="purple">Púrpura</SelectItem>
-                          <SelectItem value="orange">Naranja</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormDescription>
-                        Personaliza los colores de la interfaz
-                      </FormDescription>
-                    </FormItem>
-                  )}
-                />
+            <Tabs defaultValue="interface" className="space-y-6">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="interface" className="space-x-2">
+                  <Layout className="h-4 w-4" />
+                  <span>Interfaz</span>
+                </TabsTrigger>
+                <TabsTrigger value="attendance" className="space-x-2">
+                  <Clock className="h-4 w-4" />
+                  <span>Asistencia</span>
+                </TabsTrigger>
+                <TabsTrigger value="security" className="space-x-2">
+                  <Shield className="h-4 w-4" />
+                  <span>Seguridad</span>
+                </TabsTrigger>
+              </TabsList>
 
-                <FormField
-                  control={form.control}
-                  name="appearance"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Apariencia</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecciona el modo" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="light">Claro</SelectItem>
-                          <SelectItem value="dark">Oscuro</SelectItem>
-                          <SelectItem value="system">Sistema</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormDescription>
-                        Ajusta el modo de visualización
-                      </FormDescription>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="animationsEnabled"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                      <div className="space-y-0.5">
-                        <FormLabel className="text-base">Animaciones</FormLabel>
-                        <FormDescription>
-                          Activa o desactiva las animaciones de la interfaz
-                        </FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="animationSpeed"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Velocidad de Animaciones</FormLabel>
-                      <FormControl>
-                        <Slider
-                          min={0}
-                          max={2}
-                          step={0.1}
-                          value={[field.value]}
-                          onValueChange={([value]) => field.onChange(value)}
-                          className="w-full"
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Ajusta la velocidad de las animaciones
-                      </FormDescription>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="sidebarCollapsed"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                      <div className="space-y-0.5">
-                        <FormLabel className="text-base">Barra Lateral Colapsada</FormLabel>
-                        <FormDescription>
-                          Mantén la barra lateral minimizada por defecto
-                        </FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="autoCheckIn"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                      <div className="space-y-0.5">
-                        <FormLabel className="text-base">Fichaje Automático de Entrada</FormLabel>
-                        <FormDescription>
-                          Fichar entrada automáticamente al obtener la ubicación
-                        </FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="autoCheckOut"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                      <div className="space-y-0.5">
-                        <FormLabel className="text-base">Fichaje Automático de Salida</FormLabel>
-                        <FormDescription>
-                          Fichar salida automáticamente al pulsar el botón de obtener ubicación
-                        </FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Horario Laboral</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Configura tu horario de trabajo para cada día de la semana
-                  </p>
-
-                  {weekdays.map((day, index) => (
-                    <div key={day.value} className="grid grid-cols-3 gap-4 items-center">
-                      <div className="font-medium">{day.label}</div>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                  <TabsContent value="interface" className="space-y-6">
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-medium">Apariencia</h3>
                       <FormField
                         control={form.control}
-                        name={`schedules.${index}.startTime`}
+                        name="theme"
                         render={({ field }) => (
                           <FormItem>
+                            <FormLabel>Tema de Colores</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecciona un tema" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="blue">Azul</SelectItem>
+                                <SelectItem value="green">Verde</SelectItem>
+                                <SelectItem value="purple">Púrpura</SelectItem>
+                                <SelectItem value="orange">Naranja</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="appearance"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Modo de Visualización</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecciona el modo" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="light">Claro</SelectItem>
+                                <SelectItem value="dark">Oscuro</SelectItem>
+                                <SelectItem value="system">Sistema</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-medium">Animaciones</h3>
+                      <FormField
+                        control={form.control}
+                        name="animationsEnabled"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                              <FormLabel className="text-base">Activar Animaciones</FormLabel>
+                              <FormDescription>
+                                Activa o desactiva las animaciones de la interfaz
+                              </FormDescription>
+                            </div>
                             <FormControl>
-                              <Input
-                                type="time"
-                                {...field}
-                                className="w-full"
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
                               />
                             </FormControl>
                           </FormItem>
                         )}
                       />
+
                       <FormField
                         control={form.control}
-                        name={`schedules.${index}.endTime`}
+                        name="animationSpeed"
                         render={({ field }) => (
                           <FormItem>
+                            <FormLabel>Velocidad de Animaciones</FormLabel>
                             <FormControl>
-                              <Input
-                                type="time"
-                                {...field}
+                              <Slider
+                                min={0}
+                                max={2}
+                                step={0.1}
+                                value={[field.value]}
+                                onValueChange={([value]) => field.onChange(value)}
                                 className="w-full"
                               />
                             </FormControl>
@@ -341,36 +247,154 @@ export default function SettingsPage() {
                         )}
                       />
                     </div>
-                  ))}
-                </div>
 
-                <Button type="submit" className="w-full">
-                  {mutation.isPending ? "Guardando..." : "Guardar Cambios"}
-                </Button>
-              </form>
-            </Form>
+                    <FormField
+                      control={form.control}
+                      name="sidebarCollapsed"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-base">Barra Lateral Colapsada</FormLabel>
+                            <FormDescription>
+                              Mantén la barra lateral minimizada por defecto
+                            </FormDescription>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="attendance" className="space-y-6">
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-medium">Fichaje Automático</h3>
+                      <FormField
+                        control={form.control}
+                        name="autoCheckIn"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                              <FormLabel className="text-base">Entrada Automática</FormLabel>
+                              <FormDescription>
+                                Fichar entrada automáticamente al obtener la ubicación
+                              </FormDescription>
+                            </div>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="autoCheckOut"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                              <FormLabel className="text-base">Salida Automática</FormLabel>
+                              <FormDescription>
+                                Fichar salida automáticamente al obtener la ubicación
+                              </FormDescription>
+                            </div>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-medium">Horario Laboral</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Configura tu horario de trabajo para cada día de la semana
+                      </p>
+
+                      {weekdays.map((day, index) => (
+                        <div key={day.value} className="grid grid-cols-3 gap-4 items-center">
+                          <div className="font-medium">{day.label}</div>
+                          <FormField
+                            control={form.control}
+                            name={`schedules.${index}.startTime`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <Input
+                                    type="time"
+                                    {...field}
+                                    className="w-full"
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name={`schedules.${index}.endTime`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <Input
+                                    type="time"
+                                    {...field}
+                                    className="w-full"
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="security" className="space-y-6">
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-medium">Autenticación Biométrica</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Configura la autenticación biométrica para un inicio de sesión más seguro
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => biometricMutation.mutate()}
+                        disabled={biometricMutation.isPending}
+                      >
+                        {biometricMutation.isPending ? (
+                          "Registrando..."
+                        ) : (
+                          <>
+                            <Fingerprint className="mr-2 h-4 w-4" />
+                            Configurar Autenticación Biométrica
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </TabsContent>
+
+                  <div className="sticky bottom-0 pt-4 pb-2 bg-background border-t">
+                    <Button type="submit" className="w-full">
+                      {mutation.isPending ? "Guardando..." : "Guardar Cambios"}
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            </Tabs>
           </CardContent>
         </Card>
-
-        <div className="mt-8">
-          <h3 className="text-lg font-medium mb-4">Seguridad</h3>
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full"
-            onClick={() => biometricMutation.mutate()}
-            disabled={biometricMutation.isPending}
-          >
-            {biometricMutation.isPending ? (
-              "Registrando..."
-            ) : (
-              <>
-                <Fingerprint className="mr-2 h-4 w-4" />
-                Configurar Autenticación Biométrica
-              </>
-            )}
-          </Button>
-        </div>
       </div>
     </EmployeeLayout>
   );
