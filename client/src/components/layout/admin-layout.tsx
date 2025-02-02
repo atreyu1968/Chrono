@@ -70,7 +70,24 @@ const profileSchema = z.object({
   path: ["confirmPassword"],
 });
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+interface SelectUser {
+  id: number;
+  fullName: string;
+  email: string;
+  phone: string | null;
+  avatar: string | null;
+}
+
+interface SelectMessage {
+  id: number;
+  content: string;
+  sentAt: string;
+  fromUserId: number;
+  toUserId: number;
+  read: boolean;
+}
+
+const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   const { user, logoutMutation } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -148,13 +165,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       });
     },
   });
-    // Añadir consulta para mensajes
-    const { data: messages } = useQuery<{ id: number; content: string; sentAt: string; from: { fullName: string }, read: boolean }[]>({
-        queryKey: ["/api/messages"],
-        refetchInterval: 30000, // Refresca cada 30 segundos
-    });
 
-    const unreadCount = messages?.filter(m => !m.read).length || 0;
+  // Update messages query to include fromUser information
+  const { data: messages } = useQuery<(SelectMessage & { fromUser: SelectUser })[]>({
+    queryKey: ["/api/messages"],
+    refetchInterval: 5000, // Refresh every 5 seconds
+  });
+
+  // Calculate unread messages for each user
+    const unreadCount = messages?.filter(m => 
+      m.toUserId === user?.id && !m.read
+    ).length || 0;
+
   const menuItems = [
     { icon: LayoutDashboard, label: "Panel", href: "/admin" },
     { icon: MapPin, label: "Ubicaciones", href: "/admin/locations" },
@@ -460,4 +482,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </div>
     </div>
   );
-}
+};
+
+export default AdminLayout;
