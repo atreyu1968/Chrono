@@ -14,6 +14,7 @@ import {
   MessageSquare,
   Bell,
   Calendar as CalendarIcon,
+  Layout,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -190,6 +191,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
       href: "/admin/messages",
       badge: unreadCount > 0 ? unreadCount : undefined
     },
+    { icon: Layout, label: "Configuración", href: "/admin/settings" },
   ];
 
     const MenuContent = () => (
