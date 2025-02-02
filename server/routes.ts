@@ -413,18 +413,27 @@ export function registerRoutes(app: Express): Server {
     try {
       // 1. Verificar si es un día festivo
       const [holiday] = await db
-        .select()
+        .select({
+          id: holidays.id,
+          name: holidays.name,
+          type: holidays.type,
+          date: holidays.date
+        })
         .from(holidays)
         .where(eq(holidays.date, today));
 
       if (holiday) {
         return res.status(400).json({ 
           message: "Hoy es festivo", 
-          holiday 
+          holiday: {
+            name: holiday.name,
+            type: holiday.type,
+            date: holiday.date
+          }
         });
       }
 
-      // 2. Verificar si el usuario debe fichar hoy
+      // Resto del código permanece igual
       const weekday = today.getDay();
       const [schedule] = await db
         .select()
@@ -443,7 +452,7 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-      // 3. Verificar la ubicación
+      // Verificar la ubicación
       const [location] = await db
         .select()
         .from(locations)
@@ -468,7 +477,7 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-      // 4. Determinar si es tarde
+      // Determinar si es tarde
       let status = "present";
       const scheduleStart = parseISO(`${format(today, 'yyyy-MM-dd')}T${schedule.startTime}`);
       const now = new Date();
@@ -477,18 +486,18 @@ export function registerRoutes(app: Express): Server {
         status = "late";
       }
 
-      // 5. Registrar la asistencia
+      // Registrar la asistencia
       const [checkIn] = await db
         .insert(attendance)
         .values({
           userId: req.user.id,
           locationId,
           checkInTime: now,
-          status
+          status,
         })
         .returning();
 
-      // 6. Devolver respuesta detallada
+      // Devolver respuesta detallada
       const response = {
         ...checkIn,
         schedule: {
@@ -654,7 +663,12 @@ export function registerRoutes(app: Express): Server {
 
           // Verificar si era festivo
           const [holiday] = await db
-            .select()
+            .select({
+              id: holidays.id,
+              name: holidays.name,
+              type: holidays.type,
+              date: holidays.date
+            })
             .from(holidays)
             .where(eq(holidays.date, recordDate));
 
@@ -669,7 +683,8 @@ export function registerRoutes(app: Express): Server {
             } : null,
             holiday: holiday ? {
               name: holiday.name,
-              type: holiday.type
+              type: holiday.type,
+              date: holiday.date
             } : null,
             checkInFormatted: format(new Date(record.checkInTime), 'HH:mm'),
             checkOutFormatted: record.checkOutTime 
