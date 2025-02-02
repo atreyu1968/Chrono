@@ -26,9 +26,10 @@ import { cn } from "@/lib/utils";
 
 export default function UserAttendancePage() {
   const { userId } = useParams();
-  const [date, setDate] = useState<DateRange>({
-    from: startOfMonth(new Date()),
-    to: endOfMonth(new Date())
+  const today = new Date();
+  const [date, setDate] = useState<DateRange | undefined>({
+    from: startOfMonth(today),
+    to: endOfMonth(today)
   });
 
   const { data: user, isLoading: isLoadingUser } = useQuery<SelectUser>({
@@ -41,11 +42,11 @@ export default function UserAttendancePage() {
       "/api/attendance/user",
       {
         userId: Number(userId),
-        startDate: date.from ? format(date.from, "yyyy-MM-dd") : undefined,
-        endDate: date.to ? format(date.to, "yyyy-MM-dd") : undefined,
+        startDate: date?.from ? format(date.from, "yyyy-MM-dd") : undefined,
+        endDate: date?.to ? format(date.to, "yyyy-MM-dd") : undefined,
       },
     ],
-    enabled: !!userId && !!date.from && !!date.to,
+    enabled: !!userId && !!date?.from && !!date?.to,
   });
 
   // Group attendance records by date
@@ -123,7 +124,7 @@ export default function UserAttendancePage() {
                           mode="range"
                           defaultMonth={date?.from}
                           selected={date}
-                          onSelect={setDate}
+                          onSelect={(newDate: DateRange | undefined) => setDate(newDate)}
                           numberOfMonths={2}
                           locale={es}
                         />
@@ -202,7 +203,7 @@ export default function UserAttendancePage() {
                 <Calendar
                   mode="range"
                   selected={date}
-                  onSelect={setDate}
+                  onSelect={(newDate: DateRange | undefined) => setDate(newDate)}
                   locale={es}
                   modifiers={{
                     marked: (date) => {
