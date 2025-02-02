@@ -4,7 +4,7 @@ import { setupAuth } from "./auth";
 import { setupWebSocket } from "./websocket";
 import { db } from "@db";
 import { locations, attendance, messages, users, userSettings, departments } from "@db/schema";
-import { eq, and, gte, lte, isNull } from "drizzle-orm";
+import { eq, and, gte, lte, isNull, or } from "drizzle-orm";
 import fileUpload from "express-fileupload";
 import path from "path";
 
@@ -241,8 +241,27 @@ export function registerRoutes(app: Express): Server {
 
   // Users routes (admin only)
   app.get("/api/users", async (req, res) => {
-    if (req.user?.role !== "admin") return res.sendStatus(403);
-    const allUsers = await db.select().from(users);
+    if (!req.user) return res.sendStatus(401);
+
+    // Si es admin, devolver toda la información
+    if (req.user.role === "admin") {
+      const allUsers = await db.select().from(users);
+      return res.json(allUsers);
+    }
+
+    // Para usuarios regulares, devolver solo información básica
+    const allUsers = await db
+      .select({
+        id: users.id,
+        username: users.username,
+        fullName: users.fullName,
+        email: users.email,
+        role: users.role,
+        avatar: users.avatar,
+        department: users.department,
+      })
+      .from(users);
+
     res.json(allUsers);
   });
 
@@ -445,9 +464,31 @@ export function registerRoutes(app: Express): Server {
 
   app.get("/api/messages", async (req, res) => {
     if (!req.user) return res.sendStatus(401);
-    const userMessages = await db.select()
+
+    const userMessages = await db
+      .select({
+        id: messages.id,
+        content: messages.content,
+        sentAt: messages.sentAt,
+        fromUserId: messages.fromUserId,
+        toUserId: messages.toUserId,
+        fromUser: {
+          id: users.id,
+          username: users.username,
+          fullName: users.fullName,
+          avatar: users.avatar,
+        },
+      })
       .from(messages)
-      .where(eq(messages.toUserId, req.user.id));
+      .where(
+        or(
+          eq(messages.toUserId, req.user.id),
+          eq(messages.fromUserId, req.user.id)
+        )
+      )
+      .leftJoin(users, eq(messages.fromUserId, users.id))
+      .orderBy(messages.sentAt);
+
     res.json(userMessages);
   });
 
