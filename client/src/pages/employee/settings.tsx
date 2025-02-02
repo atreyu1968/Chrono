@@ -25,6 +25,7 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import EmployeeLayout from "@/components/layout/employee-layout";
 import { Fingerprint, Layout, Clock, Shield } from "lucide-react";
 import { startRegistration } from "@simplewebauthn/browser";
@@ -49,6 +50,7 @@ const settingsSchema = z.object({
   sidebarCollapsed: z.boolean(),
   autoCheckIn: z.boolean().default(false),
   autoCheckOut: z.boolean().default(false),
+  singleCheckInPerDay: z.boolean().default(false),
   schedules: z.array(z.object({
     weekday: z.string(),
     startTime: z.string(),
@@ -61,6 +63,7 @@ type SettingsFormValues = z.infer<typeof settingsSchema>;
 
 export default function SettingsPage() {
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const { data: settings } = useQuery<SettingsFormValues>({
     queryKey: ["/api/user/settings"],
@@ -80,6 +83,7 @@ export default function SettingsPage() {
       sidebarCollapsed: false,
       autoCheckIn: false,
       autoCheckOut: false,
+      singleCheckInPerDay: false,
       schedules: schedules || weekdays.map(day => ({
         weekday: day.value,
         startTime: "09:00",
@@ -274,7 +278,32 @@ export default function SettingsPage() {
 
                   <TabsContent value="attendance" className="space-y-6">
                     <div className="space-y-4">
-                      <h3 className="text-lg font-medium">Fichaje Automático</h3>
+                      <h3 className="text-lg font-medium">Configuración de Fichaje</h3>
+
+                      {user?.role === "admin" && (
+                        <FormField
+                          control={form.control}
+                          name="singleCheckInPerDay"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 bg-muted/50">
+                              <div className="space-y-0.5">
+                                <FormLabel className="text-base">Entrada Única por Día</FormLabel>
+                                <FormDescription>
+                                  Limitar a los usuarios a una única entrada y salida por día.
+                                  Esta configuración afectará a todos los usuarios del sistema.
+                                </FormDescription>
+                              </div>
+                              <FormControl>
+                                <Switch
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                      )}
+
                       <FormField
                         control={form.control}
                         name="autoCheckIn"
