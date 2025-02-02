@@ -11,6 +11,7 @@ import {
   ChevronRight,
   User,
   Building2,
+  MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -152,6 +153,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { icon: MapPin, label: "Ubicaciones", href: "/admin/locations" },
     { icon: Users, label: "Usuarios", href: "/admin/users" },
     { icon: Building2, label: "Departamentos", href: "/admin/departments" },
+    { icon: MessageSquare, label: "Mensajes", href: "/messages" },
   ];
 
   const MenuContent = () => (

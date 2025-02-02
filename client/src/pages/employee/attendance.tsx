@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, LogIn, LogOut } from "lucide-react";
+import { Clock, LogIn, LogOut, MapPin } from "lucide-react";
 import EmployeeLayout from "@/components/layout/employee-layout";
 import { useToast } from "@/hooks/use-toast";
 import type { SelectAttendance, SelectLocation } from "@db/schema";
@@ -47,7 +47,7 @@ export default function AttendancePage() {
   return (
     <EmployeeLayout>
       <div className="container mx-auto py-8">
-        <div className="grid gap-8 md:grid-cols-[1fr,300px]">
+        <div className="grid gap-8 md:grid-cols-[1fr,400px]">
           <Card>
             <CardHeader>
               <CardTitle>Calendario de Asistencia</CardTitle>
@@ -71,6 +71,7 @@ export default function AttendancePage() {
                   marked: {
                     fontWeight: "bold",
                     border: "2px solid var(--primary)",
+                    borderRadius: "8px",
                   },
                 }}
                 className="rounded-md border shadow-sm"
@@ -78,57 +79,71 @@ export default function AttendancePage() {
             </CardContent>
           </Card>
 
-          <div className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Detalles del Día</CardTitle>
-                <CardDescription>
-                  {format(date, "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {selectedDateRecords.length > 0 ? (
-                  <div className="space-y-6">
-                    {selectedDateRecords.map((record, index) => (
-                      <div key={record.id} className="space-y-4">
-                        {index > 0 && <hr className="my-4" />}
-                        <div className="flex items-center gap-2">
-                          <LogIn className="h-4 w-4 text-green-500" />
-                          <span className="font-medium">Entrada:</span>
-                          {format(new Date(record.checkInTime), "HH:mm")}
+          <Card>
+            <CardHeader>
+              <CardTitle>Detalles del Día</CardTitle>
+              <CardDescription>
+                {format(date, "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {selectedDateRecords.length > 0 ? (
+                <div className="space-y-6">
+                  {selectedDateRecords.map((record, index) => (
+                    <div key={record.id} className="space-y-4 bg-slate-50 p-4 rounded-lg border">
+                      {index > 0 && <hr className="my-4 border-slate-200" />}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="flex items-center gap-2 text-green-600">
+                          <LogIn className="h-4 w-4" />
+                          <div>
+                            <span className="text-sm text-slate-500">Entrada</span>
+                            <p className="font-medium">
+                              {format(new Date(record.checkInTime), "HH:mm")}
+                            </p>
+                          </div>
                         </div>
                         {record.checkOutTime && (
-                          <div className="flex items-center gap-2">
-                            <LogOut className="h-4 w-4 text-red-500" />
-                            <span className="font-medium">Salida:</span>
-                            {format(new Date(record.checkOutTime), "HH:mm")}
+                          <div className="flex items-center gap-2 text-red-600">
+                            <LogOut className="h-4 w-4" />
+                            <div>
+                              <span className="text-sm text-slate-500">Salida</span>
+                              <p className="font-medium">
+                                {format(new Date(record.checkOutTime), "HH:mm")}
+                              </p>
+                            </div>
                           </div>
                         )}
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4 text-blue-500" />
-                          <span className="font-medium">Ubicación:</span>
-                          {record.location.name}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4 text-blue-500" />
-                          <span className="font-medium">Estado:</span>
-                          <Badge
-                            variant={record.status === "present" ? "default" : "destructive"}
-                          >
-                            {record.status === "present" ? "Puntual" : "Tarde"}
-                          </Badge>
+                      </div>
+                      <div className="flex items-center gap-2 text-blue-600">
+                        <MapPin className="h-4 w-4" />
+                        <div>
+                          <span className="text-sm text-slate-500">Ubicación</span>
+                          <p className="font-medium">{record.location.name}</p>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground">
-                    No hay registros para este día
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-slate-600">
+                          <Clock className="h-4 w-4" />
+                          <span className="text-sm">Estado</span>
+                        </div>
+                        <Badge
+                          variant={record.status === "present" ? "default" : "destructive"}
+                          className="capitalize"
+                        >
+                          {record.status === "present" ? "Puntual" : "Tarde"}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Clock className="h-8 w-8 mx-auto mb-4 opacity-50" />
+                  <p>No hay registros para este día</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </EmployeeLayout>
