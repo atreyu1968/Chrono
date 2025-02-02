@@ -63,8 +63,7 @@ export default function MessagesPage() {
 
   // Agrupar mensajes por usuario
   const messagesByUser = messages?.reduce((acc, message) => {
-    // Verificar que el mensaje y sus propiedades requeridas existan
-    if (!message?.from?.id || !message.from.fullName) return acc;
+    if (!message || !message.from) return acc;
 
     const userId = message.from.id;
     if (!acc[userId]) {
@@ -79,6 +78,9 @@ export default function MessagesPage() {
 
   const selectedUserMessages = selectedUserId && messagesByUser?.[selectedUserId]?.messages;
 
+  console.log('Messages:', messages); // Debug log
+  console.log('Messages by user:', messagesByUser); // Debug log
+
   return (
     <AdminLayout>
       <div className="container mx-auto py-8">
@@ -88,47 +90,53 @@ export default function MessagesPage() {
           <Card>
             <CardHeader>
               <CardTitle>Conversaciones</CardTitle>
+              <CardDescription>
+                {Object.keys(messagesByUser || {}).length} conversaciones activas
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {Object.entries(messagesByUser || {}).map(([userId, { user, messages }]) => {
-                  const unreadCount = messages.filter(m => !m.read).length;
-                  return (
-                    <Button
-                      key={userId}
-                      variant="ghost"
-                      className={cn(
-                        "w-full justify-start",
-                        selectedUserId === user.id && "bg-primary/10"
-                      )}
-                      onClick={() => {
-                        setSelectedUserId(user.id);
-                        messages.forEach(m => {
-                          if (!m.read) {
-                            markAsReadMutation.mutate(m.id);
-                          }
-                        });
-                      }}
-                    >
-                      <div className="flex items-center gap-2 w-full">
-                        <Avatar>
-                          <AvatarImage src={user.avatar} />
-                          <AvatarFallback>
-                            {user.fullName.split(" ").map(n => n[0]).join("")}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 text-left">
-                          <p className="font-medium">{user.fullName}</p>
-                          {unreadCount > 0 && (
-                            <span className="text-xs bg-primary text-primary-foreground rounded-full px-2 py-0.5">
-                              {unreadCount} nuevo{unreadCount !== 1 && "s"}
-                            </span>
-                          )}
-                        </div>
+                {messagesByUser && Object.entries(messagesByUser).map(([userId, { user, messages }]) => (
+                  <Button
+                    key={userId}
+                    variant="ghost"
+                    className={cn(
+                      "w-full justify-start",
+                      selectedUserId === Number(userId) && "bg-primary/10"
+                    )}
+                    onClick={() => {
+                      setSelectedUserId(Number(userId));
+                      messages.forEach(m => {
+                        if (!m.read) {
+                          markAsReadMutation.mutate(m.id);
+                        }
+                      });
+                    }}
+                  >
+                    <div className="flex items-center gap-2 w-full">
+                      <Avatar>
+                        <AvatarImage src={user.avatar} />
+                        <AvatarFallback>
+                          {user.fullName.split(" ").map(n => n[0]).join("")}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 text-left">
+                        <p className="font-medium">{user.fullName}</p>
+                        {messages.filter(m => !m.read).length > 0 && (
+                          <span className="text-xs bg-primary text-primary-foreground rounded-full px-2 py-0.5">
+                            {messages.filter(m => !m.read).length} nuevo(s)
+                          </span>
+                        )}
                       </div>
-                    </Button>
-                  );
-                })}
+                    </div>
+                  </Button>
+                ))}
+
+                {(!messagesByUser || Object.keys(messagesByUser).length === 0) && (
+                  <div className="text-center py-4 text-muted-foreground">
+                    <p>No hay conversaciones activas</p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
