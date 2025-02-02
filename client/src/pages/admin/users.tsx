@@ -48,11 +48,20 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Textarea } from "@/components/ui/textarea";
 
-const employeeTypes = [
-  "profesor",
-  "pas",
-] as const;
+const employeeTypes = ["profesor", "pas"] as const;
 
 const userSchema = z.object({
   username: z.string().min(3),
@@ -77,7 +86,6 @@ const userSchema = z.object({
   path: ["medusaUser"],
 });
 
-
 const departments = [
   "Ingeniería",
   "Ventas",
@@ -86,6 +94,52 @@ const departments = [
   "Finanzas",
   "Operaciones",
 ];
+
+interface SendMessageDialogProps {
+  userId: number;
+  username: string;
+  onSend: (message: string) => void;
+}
+
+function SendMessageDialog({ userId, username, onSend }: SendMessageDialogProps) {
+  const [message, setMessage] = useState("");
+
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button variant="ghost" size="icon">
+          <Mail className="h-4 w-4" />
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Enviar mensaje a {username}</AlertDialogTitle>
+          <AlertDialogDescription>
+            <Textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Escribe tu mensaje aquí..."
+              className="mt-4"
+            />
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => {
+              if (message.trim()) {
+                onSend(message);
+                setMessage("");
+              }
+            }}
+          >
+            Enviar
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
 
 export default function UsersPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -99,7 +153,7 @@ export default function UsersPage() {
   const userStats = {
     total: users?.length || 0,
     admins: users?.filter((u) => u.role === "admin").length || 0,
-    fullTime: users?.filter((u) => u.employeeType === "full_time").length || 0,
+    profesores: users?.filter((u) => u.employeeType === "profesor").length || 0,
     departments: users
       ? Array.from(new Set(users.map(u => u.department).filter(Boolean))).length
       : 0
@@ -172,6 +226,13 @@ export default function UsersPage() {
         title: "Mensaje enviado exitosamente",
       });
     },
+    onError: (error: Error) => {
+      toast({
+        title: "Error al enviar mensaje",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   const onSubmit = (values: z.infer<typeof userSchema>) => {
@@ -200,10 +261,10 @@ export default function UsersPage() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle>Tiempo Completo</CardTitle>
+              <CardTitle>Profesores</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">{userStats.fullTime}</p>
+              <p className="text-3xl font-bold">{userStats.profesores}</p>
             </CardContent>
           </Card>
            <Card>
@@ -471,9 +532,9 @@ export default function UsersPage() {
                   <TableCell className="font-medium">{user.fullName}</TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>{user.department}</TableCell>
-                     <TableCell>
-                      <span className="capitalize">{user.employeeType?.replace('_', ' ')}</span>
-                    </TableCell>
+                  <TableCell>
+                    <span className="capitalize">{user.employeeType}</span>
+                  </TableCell>
                   <TableCell>
                     <span
                       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -497,7 +558,7 @@ export default function UsersPage() {
                             fullName: user.fullName,
                             email: user.email,
                             phone: user.phone || '',
-                            department: user.department,
+                            department: user.department || '',
                             employeeType: user.employeeType,
                             medusaUser: user.medusaUser || '',
                             role: user.role,
@@ -510,21 +571,16 @@ export default function UsersPage() {
                       >
                         <Edit2 className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          const message = prompt("Ingrese mensaje para el usuario:");
-                          if (message) {
-                            sendMessageMutation.mutate({
-                              userId: user.id,
-                              message,
-                            });
-                          }
-                        }}
-                      >
-                        <Mail className="h-4 w-4" />
-                      </Button>
+                      <SendMessageDialog
+                        userId={user.id}
+                        username={user.fullName}
+                        onSend={(message) =>
+                          sendMessageMutation.mutate({
+                            userId: user.id,
+                            message,
+                          })
+                        }
+                      />
                       <Link href={`/admin/users/${user.id}/attendance`}>
                         <Button variant="ghost" size="icon">
                           <BarChart2 className="h-4 w-4" />
