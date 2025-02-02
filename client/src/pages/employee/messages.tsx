@@ -64,18 +64,19 @@ export default function MessagesPage() {
     },
   });
 
-  // Marcar mensajes como leídos cuando se selecciona un usuario
+  // Marcar mensajes como leídos cuando se selecciona un usuario y cuando llegan nuevos mensajes
   useEffect(() => {
     if (selectedUser && messages) {
       const unreadMessages = messages.filter(
         m => m.fromUserId === selectedUser.id && m.toUserId === user?.id && !m.read
       );
 
+      // Marca los mensajes como leídos uno por uno
       unreadMessages.forEach(message => {
         markAsReadMutation.mutate(message.id);
       });
     }
-  }, [selectedUser, messages]);
+  }, [selectedUser, messages, user?.id]);
 
   // Mutación para enviar mensajes
   const sendMessageMutation = useMutation({
@@ -115,7 +116,7 @@ export default function MessagesPage() {
   const filteredMessages = messages?.filter(m => 
     (m.fromUserId === user?.id && m.toUserId === selectedUser?.id) ||
     (m.fromUserId === selectedUser?.id && m.toUserId === user?.id)
-  ) || [];
+  ).sort((a, b) => new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime()) || [];
 
   return (
     <EmployeeLayout>

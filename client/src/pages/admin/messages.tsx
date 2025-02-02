@@ -44,18 +44,19 @@ export default function MessagesPage() {
     },
   });
 
-  // Marcar mensajes como leídos cuando se selecciona un usuario
+  // Marcar mensajes como leídos cuando se selecciona un usuario y cuando llegan nuevos mensajes
   useEffect(() => {
     if (selectedUserId && messages) {
       const unreadMessages = messages.filter(
         m => m.fromUserId === selectedUserId && m.toUserId === user?.id && !m.read
       );
 
+      // Marca los mensajes como leídos uno por uno
       unreadMessages.forEach(message => {
         markAsReadMutation.mutate(message.id);
       });
     }
-  }, [selectedUserId, messages]);
+  }, [selectedUserId, messages, user?.id]);
 
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
@@ -103,12 +104,11 @@ export default function MessagesPage() {
     messages?.filter(m => 
       (m.fromUserId === user?.id && m.toUserId === selectedUserId) ||
       (m.fromUserId === selectedUserId && m.toUserId === user?.id)
-    ) : [];
+    ).sort((a, b) => new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime()) : [];
 
   return (
     <AdminLayout>
       <div className="container mx-auto py-8">
-        <h1 className="text-3xl font-bold mb-6">Mensajes</h1>
         <div className="grid gap-8 md:grid-cols-[300px,1fr]">
           {/* Lista de usuarios */}
           <Card>
