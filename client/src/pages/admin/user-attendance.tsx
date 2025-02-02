@@ -48,17 +48,15 @@ export default function UserAttendancePage() {
       "/api/attendance/user",
       {
         userId: String(userId),
-        startDate: date?.from ? format(date.from, "yyyy-MM-dd") : undefined,
-        endDate: date?.to ? format(date.to, "yyyy-MM-dd") : undefined,
       },
     ],
-    enabled: !!userId && !!date?.from && !!date?.to,
+    enabled: !!userId,
   });
 
-  console.log("[Frontend] Query parameters:", {
-    userId: String(userId),
-    startDate: date?.from ? format(date.from, "yyyy-MM-dd") : undefined,
-    endDate: date?.to ? format(date.to, "yyyy-MM-dd") : undefined
+  console.log("[Frontend] Attendance query:", {
+    userId,
+    isLoadingAttendance,
+    recordsCount: attendance?.length
   });
 
 

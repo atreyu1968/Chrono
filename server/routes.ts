@@ -631,7 +631,7 @@ export function registerRoutes(app: Express): Server {
   // Rutas de asistencia para usuarios específicos (admin y el propio usuario)
     app.get("/api/attendance/user", async (req, res) => {
     if (!req.user) return res.sendStatus(401);
-    const { userId, startDate, endDate } = req.query;
+    const { userId } = req.query;
 
     try {
       // Validar que userId sea un número válido
@@ -645,65 +645,25 @@ export function registerRoutes(app: Express): Server {
         return res.sendStatus(403);
       }
 
-      let start: Date, end: Date;
-
-      if (startDate && endDate) {
-        start = new Date(startDate as string);
-        end = new Date(endDate as string);
-      } else {
-        start = startOfMonth(new Date());
-        end = endOfMonth(new Date());
-      }
-
-      console.log("[Backend] Query parameters:", {
-        userId: userIdNumber,
-        start: format(start, 'yyyy-MM-dd'),
-        end: format(end, 'yyyy-MM-dd')
-      });
-
-      // Consulta directa sin joins inicialmente para verificar
+      // Consulta directa con joins
       const records = await db
-        .select()
+        .select({
+          id: attendance.id,
+          checkInTime: attendance.checkInTime,
+          checkOutTime: attendance.checkOutTime,
+          status: attendance.status,
+          location: {
+            id: locations.id,
+            name: locations.name,
+          }
+        })
         .from(attendance)
-        .where(
-          and(
-            eq(attendance.userId, userIdNumber),
-            gte(attendance.checkInTime, start),
-            lte(attendance.checkInTime, end)
-          )
-        );
+        .leftJoin(locations, eq(attendance.locationId, locations.id))
+        .where(eq(attendance.userId, userIdNumber))
+        .orderBy(desc(attendance.checkInTime));
 
       console.log("[Backend] Found records:", records.length);
-
-      // Si encontramos registros, ahora obtenemos la información de ubicación
-      if (records.length > 0) {
-        const history = await db
-          .select({
-            id: attendance.id,
-            checkInTime: attendance.checkInTime,
-            checkOutTime: attendance.checkOutTime,
-            status: attendance.status,
-            location: {
-              id: locations.id,
-              name: locations.name,
-            }
-          })
-          .from(attendance)
-          .where(
-            and(
-              eq(attendance.userId, userIdNumber),
-              gte(attendance.checkInTime, start),
-              lte(attendance.checkInTime, end)
-            )
-          )
-          .leftJoin(locations, eq(attendance.locationId, locations.id))
-          .orderBy(desc(attendance.checkInTime));
-
-        console.log("[Backend] Processed records with locations:", history.length);
-        res.json(history);
-      } else {
-        res.json([]);
-      }
+      res.json(records);
     } catch (error) {
       console.error("[Backend] Error:", error);
       res.status(500).json({ message: "Error al obtener el historial de asistencia" });
