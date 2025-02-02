@@ -704,6 +704,7 @@ export function registerRoutes(app: Express): Server {
         userRole: req.user?.role
       });
 
+      // Construir la consulta base
       let query = db
         .select({
           id: attendance.id,
@@ -726,53 +727,62 @@ export function registerRoutes(app: Express): Server {
         .leftJoin(locations, eq(attendance.locationId, locations.id))
         .leftJoin(users, eq(attendance.userId, users.id));
 
-      // Aplicar filtros si se proporcionan
-      const filters = [];
+      // Aplicar filtros
+      const conditions = [];
 
       if (userId && !isNaN(Number(userId))) {
-        const userIdNum = Number(userId);
-        console.log("[Backend] Applying user filter:", userIdNum);
-        filters.push(eq(attendance.userId, userIdNum));
+        console.log("[Backend] Adding user filter:", userId);
+        conditions.push(eq(attendance.userId, Number(userId)));
       }
 
       if (departmentId && !isNaN(Number(departmentId))) {
-        const departmentIdNum = Number(departmentId);
-        console.log("[Backend] Applying department filter:", departmentIdNum);
-        filters.push(eq(users.departmentId, departmentIdNum));
+        console.log("[Backend] Adding department filter:", departmentId);
+        conditions.push(eq(users.departmentId, Number(departmentId)));
       }
 
       if (locationId && !isNaN(Number(locationId))) {
-        const locationIdNum = Number(locationId);
-        console.log("[Backend] Applying location filter:", locationIdNum);
-        filters.push(eq(attendance.locationId, locationIdNum));
+        console.log("[Backend] Adding location filter:", locationId);
+        conditions.push(eq(attendance.locationId, Number(locationId)));
       }
 
       if (startDate) {
         const start = new Date(startDate as string);
-        start.setHours(0, 0, 0, 0);
-        filters.push(gte(attendance.checkInTime, start));
+        if (!isNaN(start.getTime())) {
+          start.setHours(0, 0, 0, 0);
+          console.log("[Backend] Adding start date filter:", start);
+          conditions.push(gte(attendance.checkInTime, start));
+        }
       }
 
       if (endDate) {
         const end = new Date(endDate as string);
-        end.setHours(23, 59, 59, 999);
-        filters.push(lte(attendance.checkInTime, end));
+        if (!isNaN(end.getTime())) {
+          end.setHours(23, 59, 59, 999);
+          console.log("[Backend] Adding end date filter:", end);
+          conditions.push(lte(attendance.checkInTime, end));
+        }
       }
 
-      if (filters.length > 0) {
-        query = query.where(and(...filters));
+      // Aplicar todos los filtros si existen
+      if (conditions.length > 0) {
+        query = query.where(and(...conditions));
       }
 
-      const records = await query.orderBy(desc(attendance.checkInTime));
+      // Ordenar por fecha de check-in descendente
+      query = query.orderBy(desc(attendance.checkInTime));
 
-      console.log("[Backend] Attendance records query:", {
-        userId,
-        departmentId,
-        locationId,
-        startDate,
-        endDate,
-        filterCount: filters.length,
-        recordCount: records.length
+      const records = await query;
+
+      console.log("[Backend] Query executed with filters:", {
+        totalFilters: conditions.length,
+        recordsFound: records.length,
+        appliedFilters: {
+          userId: userId ? Number(userId) : undefined,
+          departmentId: departmentId ? Number(departmentId) : undefined,
+          locationId: locationId ? Number(locationId) : undefined,
+          startDate: startDate ? new Date(startDate as string) : undefined,
+          endDate: endDate ? new Date(endDate as string) : undefined,
+        }
       });
 
       res.json(records);
