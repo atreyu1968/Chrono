@@ -871,8 +871,7 @@ export function registerRoutes(app: Express): Server {
   // Messaging routes
   app.post("/api/messages", async (req, res) => {
     if (!req.user) return res.sendStatus(401);
-    const message = await db.insert(messages).values({
-      ...req.body,      fromUserId: req.user.id,
+    const message = await db.insert(messages).values({      ...req.body,      fromUserId: req.user.id,
       sentAt: new Date()
     }).returning();
     res.json(message[0]);
@@ -1040,10 +1039,16 @@ if (!req.user) return res.sendStatus(401);
   // Holiday routes (admin only)
   app.get("/api/holidays", async (req, res) => {
     try {
-      const allHolidays = await db
-        .select()
-        .from(holidays)
-        .orderBy(holidays.date);
+      const allHolidays = await db.select({
+        id: holidays.id,
+        name: holidays.name,
+        date: holidays.date,
+        type: holidays.type,
+        createdAt: holidays.createdAt,
+      })
+      .from(holidays)
+      .orderBy(holidays.date);
+
       res.json(allHolidays);
     } catch (error) {
       console.error("Error fetching holidays:", error);
