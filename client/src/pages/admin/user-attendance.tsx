@@ -32,7 +32,6 @@ export default function UserAttendancePage() {
     to: endOfMonth(today)
   });
 
-  // Primero obtener los datos del usuario
   const { data: user, isLoading: isLoadingUser } = useQuery<SelectUser>({
     queryKey: [`/api/users/${userId}`],
     enabled: !!userId,
