@@ -125,14 +125,14 @@ export default function MessagesPage() {
 
   return (
     <EmployeeLayout>
-      <div className="container mx-auto py-8">
-        <div className="grid gap-8 md:grid-cols-[300px,1fr]">
+      <div className="container mx-auto py-6 px-4">
+        <div className="grid gap-6 lg:grid-cols-[300px,1fr]">
           {/* Lista de usuarios */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Usuarios</CardTitle>
+          <Card className="h-[calc(100vh-8rem)] flex flex-col">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-xl">Usuarios</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="flex-1 overflow-y-auto space-y-2">
               {users?.filter(u => u.id !== user?.id).map((u) => {
                 const unreadCount = messages?.filter(m => 
                   m.fromUserId === u.id && 
@@ -145,28 +145,28 @@ export default function MessagesPage() {
                     key={u.id}
                     variant="ghost"
                     className={cn(
-                      "w-full flex items-center gap-3 justify-start p-2 hover:bg-slate-100",
+                      "w-full flex items-center gap-3 justify-start p-3 hover:bg-slate-100 transition-colors",
                       selectedUser?.id === u.id && "bg-slate-100"
                     )}
                     onClick={() => setSelectedUser(u)}
                   >
-                    <Avatar>
+                    <Avatar className="h-10 w-10">
                       <AvatarImage src={u.avatar || undefined} />
-                      <AvatarFallback>
+                      <AvatarFallback className="text-lg">
                         {u.fullName?.split(" ").map(n => n[0]).join("").toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="text-left">
-                      <p className="font-medium">{u.fullName}</p>
+                    <div className="text-left flex-1 min-w-0">
+                      <p className="font-medium truncate">{u.fullName}</p>
                       <p className="text-sm text-muted-foreground">
                         {u.role === "admin" ? "Administrador" : "Empleado"}
                       </p>
-                      {unreadCount > 0 && (
-                        <span className="text-xs bg-primary text-primary-foreground rounded-full px-2 py-0.5">
-                          {unreadCount} nuevo(s)
-                        </span>
-                      )}
                     </div>
+                    {unreadCount > 0 && (
+                      <span className="text-xs bg-primary text-primary-foreground rounded-full px-2 py-0.5 min-w-[1.5rem] text-center">
+                        {unreadCount}
+                      </span>
+                    )}
                   </Button>
                 );
               })}
@@ -174,79 +174,85 @@ export default function MessagesPage() {
           </Card>
 
           {/* Mensajes */}
-          <Card>
-            <CardHeader>
-              <CardTitle>
-                {selectedUser ? `Chat con ${selectedUser.fullName}` : "Mensajes"}
+          <Card className="h-[calc(100vh-8rem)] flex flex-col">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-xl">
+                {selectedUser ? `Chat con ${selectedUser.fullName}` : "Selecciona un usuario para chatear"}
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4 mb-4 h-[500px] overflow-y-auto">
-                {filteredMessages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={cn(
-                      "flex gap-3",
-                      message.fromUserId === user?.id && "flex-row-reverse"
-                    )}
-                  >
-                    <Avatar>
-                      <AvatarImage src={message.fromUser.avatar || undefined} />
-                      <AvatarFallback>
-                        {message.fromUser.fullName?.split(" ").map(n => n[0]).join("").toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
+            <CardContent className="flex-1 flex flex-col p-0">
+              <div className="flex-1 overflow-y-auto px-6">
+                <div className="space-y-4 py-4">
+                  {filteredMessages.map((message) => (
                     <div
+                      key={message.id}
                       className={cn(
-                        "flex flex-col max-w-[70%]",
-                        message.fromUserId === user?.id ? "items-end" : "items-start"
+                        "flex gap-3",
+                        message.fromUserId === user?.id && "flex-row-reverse"
                       )}
                     >
+                      <Avatar className="h-8 w-8 flex-shrink-0">
+                        <AvatarImage src={message.fromUser.avatar || undefined} />
+                        <AvatarFallback>
+                          {message.fromUser.fullName?.split(" ").map(n => n[0]).join("").toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
                       <div
                         className={cn(
-                          "rounded-lg p-3",
-                          message.fromUserId === user?.id
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted"
+                          "flex flex-col max-w-[70%]",
+                          message.fromUserId === user?.id ? "items-end" : "items-start"
                         )}
                       >
-                        {message.content}
+                        <div
+                          className={cn(
+                            "rounded-lg px-4 py-2",
+                            message.fromUserId === user?.id
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted"
+                          )}
+                        >
+                          {message.content}
+                        </div>
+                        <span className="text-xs text-muted-foreground mt-1">
+                          {format(new Date(message.sentAt), "dd/MM/yyyy HH:mm", {
+                            locale: es,
+                          })}
+                        </span>
                       </div>
-                      <span className="text-xs text-muted-foreground mt-1">
-                        {format(new Date(message.sentAt), "dd/MM/yyyy HH:mm", {
-                          locale: es,
-                        })}
-                      </span>
                     </div>
-                  </div>
-                ))}
-                <div ref={messagesEndRef} />
+                  ))}
+                  <div ref={messagesEndRef} />
+                </div>
               </div>
 
-              <div className="flex gap-2">
-                <Textarea
-                  placeholder={
-                    selectedUser
-                      ? "Escribe tu mensaje..."
-                      : "Selecciona un usuario para enviar mensajes"
-                  }
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  className="flex-1"
-                  disabled={!selectedUser}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey && newMessage.trim()) {
-                      e.preventDefault();
-                      sendMessageMutation.mutate();
+              <div className="p-4 border-t">
+                <div className="flex gap-2">
+                  <Textarea
+                    placeholder={
+                      selectedUser
+                        ? "Escribe tu mensaje..."
+                        : "Selecciona un usuario para enviar mensajes"
                     }
-                  }}
-                />
-                <Button
-                  disabled={!selectedUser || !newMessage.trim()}
-                  onClick={() => sendMessageMutation.mutate()}
-                >
-                  <Send className="h-4 w-4" />
-                </Button>
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    className="flex-1 min-h-[2.5rem] max-h-[10rem]"
+                    disabled={!selectedUser}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey && newMessage.trim()) {
+                        e.preventDefault();
+                        sendMessageMutation.mutate();
+                      }
+                    }}
+                  />
+                  <Button
+                    disabled={!selectedUser || !newMessage.trim() || sendMessageMutation.isPending}
+                    onClick={() => sendMessageMutation.mutate()}
+                    size="icon"
+                    className="h-10 w-10"
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>

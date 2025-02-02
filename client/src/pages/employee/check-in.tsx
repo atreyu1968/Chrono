@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import EmployeeLayout from "@/components/layout/employee-layout";
 import { apiRequest } from "@/lib/queryClient";
 import type { SelectLocation } from "@db/schema";
-import { LogIn, LogOut } from "lucide-react";
+import { LogIn, LogOut, MapPin } from "lucide-react";
 
 export default function EmployeeCheckIn() {
   const [location, setLocation] = useState<string>("");
@@ -29,7 +29,6 @@ export default function EmployeeCheckIn() {
     queryKey: ["/api/user/settings"],
   });
 
-  // Query para verificar si hay un registro de entrada sin salida
   const { data: attendance } = useQuery<any[]>({
     queryKey: ["/api/attendance/history", {
       startDate: new Date().toISOString().split('T')[0],
@@ -38,7 +37,6 @@ export default function EmployeeCheckIn() {
   });
 
   useEffect(() => {
-    // Verificar si hay un registro de entrada sin salida para hoy
     const hasOpen = attendance?.some(
       record => !record.checkOutTime && 
       new Date(record.checkInTime).toDateString() === new Date().toDateString()
@@ -68,7 +66,6 @@ export default function EmployeeCheckIn() {
         title: "Fichaje exitoso",
         description: "Tu entrada ha sido registrada",
       });
-      // Actualizar el estado
       setHasOpenCheckIn(true);
     },
     onError: (error: Error) => {
@@ -89,7 +86,6 @@ export default function EmployeeCheckIn() {
         title: "Fichaje exitoso",
         description: "Tu salida ha sido registrada",
       });
-      // Actualizar el estado
       setHasOpenCheckIn(false);
     },
     onError: (error: Error) => {
@@ -110,7 +106,6 @@ export default function EmployeeCheckIn() {
             title: "Ubicación obtenida",
             description: "Ya puedes fichar tu entrada",
           });
-          // Si autoCheckIn está activado, realizar el fichaje automáticamente
           if (settings?.autoCheckIn && location) {
             checkInMutation.mutate();
           }
@@ -138,7 +133,6 @@ export default function EmployeeCheckIn() {
     if (settings?.autoCheckOut) {
       checkOutMutation.mutate();
     } else {
-      // Mostrar confirmación antes de fichar salida
       if (window.confirm('¿Estás seguro de que quieres fichar la salida?')) {
         checkOutMutation.mutate();
       }
@@ -147,10 +141,18 @@ export default function EmployeeCheckIn() {
 
   return (
     <EmployeeLayout>
-      <div className="max-w-md mx-auto py-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Fichar Entrada/Salida</CardTitle>
+      <div className="flex items-center justify-center min-h-[calc(100vh-4rem)] p-4">
+        <Card className="w-full max-w-md shadow-lg">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl text-center">
+              {hasOpenCheckIn ? "Registrar Salida" : "Registrar Entrada"}
+            </CardTitle>
+            {!hasOpenCheckIn && coordinates && (
+              <div className="text-sm text-muted-foreground text-center flex items-center justify-center gap-1">
+                <MapPin className="h-4 w-4" />
+                <span>Ubicación obtenida</span>
+              </div>
+            )}
           </CardHeader>
           <CardContent className="space-y-4">
             {!hasOpenCheckIn ? (
@@ -175,23 +177,23 @@ export default function EmployeeCheckIn() {
                 </div>
 
                 <Button
-                  className="w-full"
+                  className="w-full h-12 text-lg"
                   variant="default"
                   onClick={handleCheckIn}
                   disabled={!location || checkInMutation.isPending}
                 >
-                  <LogIn className="mr-2 h-4 w-4" />
+                  <LogIn className="mr-2 h-5 w-5" />
                   {checkInMutation.isPending ? "Procesando..." : coordinates ? "Registrar Entrada" : "Obtener Ubicación"}
                 </Button>
               </>
             ) : (
               <Button
-                className="w-full"
+                className="w-full h-12 text-lg"
                 variant="destructive"
                 onClick={handleCheckOut}
                 disabled={checkOutMutation.isPending}
               >
-                <LogOut className="mr-2 h-4 w-4" />
+                <LogOut className="mr-2 h-5 w-5" />
                 {checkOutMutation.isPending ? "Procesando..." : "Registrar Salida"}
               </Button>
             )}
