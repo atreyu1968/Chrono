@@ -106,39 +106,37 @@ export default function HolidaysPage() {
   return (
     <AdminLayout>
       <div className="container mx-auto py-8">
-        <div className="grid gap-8 md:grid-cols-[3fr,1fr]">
-          <Card className="overflow-hidden">
+        <div className="grid gap-8 md:grid-cols-[4fr,1fr]">
+          <Card>
             <CardHeader>
               <CardTitle>Calendario de Días Festivos</CardTitle>
               <CardDescription>
                 Selecciona una fecha para añadir o eliminar días festivos
               </CardDescription>
             </CardHeader>
-            <CardContent className="p-6">
-              <div className="grid grid-cols-2 gap-4">
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={setSelectedDate}
-                  locale={es}
-                  numberOfMonths={6}
-                  showOutsideDays={false}
-                  className="rounded-md border [&_.rdp-months]:grid [&_.rdp-months]:grid-cols-2 [&_.rdp-months]:gap-4 [&_.rdp-month]:w-full [&_.rdp-table]:w-full [&_.rdp-cell]:p-0 [&_.rdp-button]:w-9 [&_.rdp-button]:h-9 [&_.rdp-caption]:mb-4 [&_.rdp-nav]:mb-2"
-                  modifiers={{
-                    holiday: (date) => {
-                      const dateStr = format(date, "yyyy-MM-dd");
-                      return dateStr in holidayDates;
-                    }
-                  }}
-                  modifiersStyles={{
-                    holiday: {
-                      backgroundColor: "#fee2e2",
-                      color: "#ef4444",
-                      fontWeight: "bold"
-                    }
-                  }}
-                />
-              </div>
+            <CardContent className="p-4">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={setSelectedDate}
+                locale={es}
+                numberOfMonths={6}
+                showOutsideDays={false}
+                className="rounded-md border w-full [&_.rdp-months]:grid [&_.rdp-months]:grid-cols-2 [&_.rdp-months]:grid-rows-3 [&_.rdp-months]:gap-4 [&_.rdp-month]:w-full [&_.rdp-table]:w-full [&_.rdp-cell]:p-0 [&_.rdp-button]:w-8 [&_.rdp-button]:h-8 [&_.rdp-caption]:mb-2 [&_.rdp-nav]:mb-1 [&_.rdp-head_cell]:text-xs [&_.rdp-day]:text-sm"
+                modifiers={{
+                  holiday: (date) => {
+                    const dateStr = format(date, "yyyy-MM-dd");
+                    return dateStr in holidayDates;
+                  }
+                }}
+                modifiersStyles={{
+                  holiday: {
+                    backgroundColor: "#fee2e2",
+                    color: "#ef4444",
+                    fontWeight: "bold"
+                  }
+                }}
+              />
             </CardContent>
           </Card>
 
@@ -200,7 +198,7 @@ export default function HolidaysPage() {
               </CardContent>
             </Card>
 
-            {selectedDate && holidays?.some((h: any) => 
+            {selectedDate && holidays?.some((h: any) =>
               format(new Date(h.date), "yyyy-MM-dd") === format(selectedDate, "yyyy-MM-dd")
             ) && (
               <Card>
@@ -212,7 +210,7 @@ export default function HolidaysPage() {
                     variant="destructive"
                     className="w-full"
                     onClick={() => {
-                      const holiday = holidays.find((h: any) => 
+                      const holiday = holidays.find((h: any) =>
                         format(new Date(h.date), "yyyy-MM-dd") === format(selectedDate, "yyyy-MM-dd")
                       );
                       if (holiday) {
