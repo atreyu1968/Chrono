@@ -68,7 +68,7 @@ export function setupAuth(app: Express) {
       try {
         const [user] = await getUserByUsername(username);
         if (!user || !(await comparePasswords(password, user.password))) {
-          return done(null, false);
+          return done(null, false, { message: "Credenciales inválidas" });
         }
         return done(null, user);
       } catch (error) {
@@ -102,12 +102,12 @@ export function setupAuth(app: Express) {
     const result = insertUserSchema.safeParse(req.body);
     if (!result.success) {
       const error = fromZodError(result.error);
-      return res.status(400).send(error.toString());
+      return res.status(400).json({ error: error.toString() });
     }
 
     const [existingUser] = await getUserByUsername(result.data.username);
     if (existingUser) {
-      return res.status(400).send("El nombre de usuario ya existe");
+      return res.status(400).json({ error: "El nombre de usuario ya existe" });
     }
 
     try {
@@ -130,12 +130,16 @@ export function setupAuth(app: Express) {
 
   app.post("/api/login", (req, res, next) => {
     passport.authenticate("local", (err, user, info) => {
-      if (err) return next(err);
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
       if (!user) {
-        return res.status(401).send("Credenciales inválidas");
+        return res.status(401).json({ error: info?.message || "Credenciales inválidas" });
       }
       req.login(user, (err) => {
-        if (err) return next(err);
+        if (err) {
+          return res.status(500).json({ error: err.message });
+        }
         res.json(user);
       });
     })(req, res, next);
