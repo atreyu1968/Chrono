@@ -42,50 +42,64 @@ async function getUserByUsername(username: string) {
 export function setupAuth(app: Express) {
   console.log('[Auth] Setting up authentication...');
 
+  // Initialize session store
   const store = new PostgresSessionStore({ 
-    pool, 
+    pool,
     createTableIfMissing: true,
     tableName: 'session'
   });
 
-  // Updated session configuration with debugging
+  // Get domain configuration
+  const isProduction = app.get("env") === "production";
+  const domain = process.env.REPL_SLUG ? `.${process.env.REPL_SLUG}.repl.co` : undefined;
+
+  console.log('[Auth] Environment config:', {
+    isProduction,
+    domain,
+    replSlug: process.env.REPL_SLUG
+  });
+
+  // Session configuration
   const sessionSettings: session.SessionOptions = {
     secret: process.env.REPL_ID || 'development-secret',
     resave: true,
     saveUninitialized: true,
     store,
+    proxy: true, // Trust proxy
     name: 'sid',
     cookie: {
-      secure: false,
-      sameSite: 'lax',
+      secure: isProduction, // Only use secure in production
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000,
+      sameSite: 'lax',
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
       path: '/',
-      domain: process.env.REPL_SLUG ? `${process.env.REPL_SLUG}.repl.co` : undefined
+      domain: domain
     }
   };
 
-  if (app.get("env") === "production") {
-    app.set("trust proxy", 1);
-    if (sessionSettings.cookie) {
-      sessionSettings.cookie.secure = true;
-    }
-  }
-
-  // Debug middleware para sesión
+  // Debug middleware for session
   app.use((req, res, next) => {
-    console.log('[Auth] Session debug:', {
-      id: req.sessionID,
-      cookie: req.session?.cookie,
-      user: req.session?.passport?.user
+    console.log('[Auth] Request debug:', {
+      url: req.url,
+      method: req.method,
+      cookies: req.cookies,
+      sessionID: req.sessionID,
+      session: req.session
     });
     next();
   });
 
+  // Set trust proxy if in production
+  if (isProduction) {
+    app.set("trust proxy", 1);
+  }
+
+  // Initialize session middleware
   app.use(session(sessionSettings));
   app.use(passport.initialize());
   app.use(passport.session());
 
+  // Configure passport
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
@@ -127,7 +141,6 @@ export function setupAuth(app: Express) {
   passport.deserializeUser(async (id: number, done) => {
     try {
       console.log('[Auth] Deserializing user:', id);
-
       const [user] = await db
         .select()
         .from(users)
@@ -152,10 +165,12 @@ export function setupAuth(app: Express) {
     }
   });
 
+  // Auth routes
   app.post("/api/login", (req, res, next) => {
     console.log('[Auth] Login request:', {
       username: req.body.username,
-      session: req.sessionID
+      session: req.sessionID,
+      headers: req.headers
     });
 
     passport.authenticate("local", (err: Error | null, user: Express.User | false, info: { message: string } | undefined) => {
@@ -225,7 +240,8 @@ export function setupAuth(app: Express) {
         id: req.user.id,
         username: req.user.username,
         role: req.user.role
-      } : null
+      } : null,
+      headers: req.headers
     });
 
     if (!req.isAuthenticated()) {
