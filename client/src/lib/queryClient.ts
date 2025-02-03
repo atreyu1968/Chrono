@@ -2,6 +2,10 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
+    // Para respuestas 401, retornar null en lugar de lanzar error
+    if (res.status === 401) {
+      return null;
+    }
     const text = (await res.text()) || res.statusText;
     throw new Error(`${res.status}: ${text}`);
   }
@@ -10,12 +14,19 @@ async function throwIfResNotOk(res: Response) {
 export async function apiRequest(
   method: string,
   url: string,
-  data?: unknown | undefined,
+  data?: unknown | FormData,
+  options: RequestInit = {}
 ): Promise<Response> {
+  const headers: Record<string, string> = {};
+
+  if (!(data instanceof FormData)) {
+    headers["Content-Type"] = "application/json";
+  }
+
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
-    body: data ? JSON.stringify(data) : undefined,
+    headers: { ...headers, ...options.headers },
+    body: data instanceof FormData ? data : data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
 
@@ -38,13 +49,14 @@ export const getQueryFn: <T>(options: {
     }
 
     await throwIfResNotOk(res);
+    if (!res.ok) return null;
     return await res.json();
   };
 
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      queryFn: getQueryFn({ on401: "throw" }),
+      queryFn: getQueryFn({ on401: "returnNull" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
       staleTime: Infinity,

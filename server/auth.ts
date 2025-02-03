@@ -34,17 +34,24 @@ async function getUserByUsername(username: string) {
 }
 
 export function setupAuth(app: Express) {
-  const store = new PostgresSessionStore({ pool, createTableIfMissing: true });
+  const store = new PostgresSessionStore({ 
+    pool, 
+    createTableIfMissing: true,
+    tableName: 'session'
+  });
+
   const sessionSettings: session.SessionOptions = {
     secret: process.env.REPL_ID!,
     resave: false,
     saveUninitialized: false,
     store,
+    name: 'sid',
     cookie: {
       secure: app.get("env") === "production",
       sameSite: "lax",
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      path: '/'
     }
   };
 
@@ -70,7 +77,10 @@ export function setupAuth(app: Express) {
     }),
   );
 
-  passport.serializeUser((user, done) => done(null, user.id));
+  passport.serializeUser((user, done) => {
+    done(null, user.id);
+  });
+
   passport.deserializeUser(async (id: number, done) => {
     try {
       const [user] = await db
@@ -97,7 +107,7 @@ export function setupAuth(app: Express) {
 
     const [existingUser] = await getUserByUsername(result.data.username);
     if (existingUser) {
-      return res.status(400).send("Username already exists");
+      return res.status(400).send("El nombre de usuario ya existe");
     }
 
     try {
@@ -118,19 +128,34 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/login", passport.authenticate("local"), (req, res) => {
-    res.status(200).json(req.user);
+  app.post("/api/login", (req, res, next) => {
+    passport.authenticate("local", (err, user, info) => {
+      if (err) return next(err);
+      if (!user) {
+        return res.status(401).send("Credenciales inválidas");
+      }
+      req.login(user, (err) => {
+        if (err) return next(err);
+        res.json(user);
+      });
+    })(req, res, next);
   });
 
   app.post("/api/logout", (req, res, next) => {
     req.logout((err) => {
       if (err) return next(err);
-      res.sendStatus(200);
+      req.session.destroy((err) => {
+        if (err) return next(err);
+        res.clearCookie('sid');
+        res.sendStatus(200);
+      });
     });
   });
 
   app.get("/api/user", (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (!req.isAuthenticated()) {
+      return res.sendStatus(401);
+    }
     res.json(req.user);
   });
 }
