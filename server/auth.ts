@@ -67,14 +67,21 @@ export function setupAuth(app: Express) {
     new LocalStrategy(async (username, password, done) => {
       try {
         const [user] = await getUserByUsername(username);
-        if (!user || !(await comparePasswords(password, user.password))) {
+        if (!user) {
           return done(null, false, { message: "Credenciales inválidas" });
         }
+
+        const isValidPassword = await comparePasswords(password, user.password);
+        if (!isValidPassword) {
+          return done(null, false, { message: "Credenciales inválidas" });
+        }
+
         return done(null, user);
       } catch (error) {
+        console.error('Error en autenticación:', error);
         return done(error);
       }
-    }),
+    })
   );
 
   passport.serializeUser((user, done) => {
@@ -94,6 +101,7 @@ export function setupAuth(app: Express) {
       }
       done(null, user);
     } catch (error) {
+      console.error('Error en deserialización:', error);
       done(error);
     }
   });
@@ -131,6 +139,7 @@ export function setupAuth(app: Express) {
   app.post("/api/login", (req, res, next) => {
     passport.authenticate("local", (err, user, info) => {
       if (err) {
+        console.error('Error en login:', err);
         return res.status(500).json({ error: err.message });
       }
       if (!user) {
@@ -138,8 +147,10 @@ export function setupAuth(app: Express) {
       }
       req.login(user, (err) => {
         if (err) {
+          console.error('Error en login session:', err);
           return res.status(500).json({ error: err.message });
         }
+        console.log('Usuario autenticado:', user);
         res.json(user);
       });
     })(req, res, next);
@@ -157,6 +168,7 @@ export function setupAuth(app: Express) {
   });
 
   app.get("/api/user", (req, res) => {
+    console.log('Sesión actual:', req.user);
     if (!req.isAuthenticated()) {
       return res.sendStatus(401);
     }
