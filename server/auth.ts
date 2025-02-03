@@ -27,25 +27,14 @@ async function comparePasswords(supplied: string, stored: string) {
 }
 
 async function getUserByUsername(username: string) {
-  console.log('[Auth] Looking up user:', username);
-  const result = await db.select({
-    id: users.id,
-    username: users.username,
-    password: users.password,
-    role: users.role,
-    // Add any other fields you need
-  }).from(users)
-    .where(eq(users.username, username))
-    .limit(1);
+    console.log('[Auth] Looking up user:', username);
+    const result = await db.select().from(users)
+      .where(eq(users.username, username))
+      .limit(1);
 
-  console.log('[Auth] User lookup result:', result[0] ? {
-    id: result[0].id,
-    username: result[0].username,
-    role: result[0].role
-  } : 'Not found');
-
-  return result;
-}
+    console.log('[Auth] User lookup result:', result[0]);
+    return result;
+  }
 
 export function setupAuth(app: Express) {
   console.log('[Auth] Setting up authentication...');
@@ -177,39 +166,36 @@ export function setupAuth(app: Express) {
   app.post("/api/login", (req, res, next) => {
     console.log('[Auth] Login request:', {
       username: req.body.username,
-      session: req.sessionID,
-      headers: req.headers
+      session: req.sessionID
     });
-  
+
     passport.authenticate("local", (err: Error | null, user: Express.User | false, info: { message: string } | undefined) => {
       if (err) {
         console.error('[Auth] Login error:', err);
         return res.status(500).json({ error: "Error interno del servidor" });
       }
-  
+
       if (!user) {
         console.log('[Auth] Login failed:', info?.message);
         return res.status(401).json({ error: info?.message || "Credenciales inválidas" });
       }
-  
+
       req.login(user, (err) => {
         if (err) {
           console.error('[Auth] Session creation error:', err);
           return res.status(500).json({ error: "Error al crear la sesión" });
         }
-  
-        const userData = {
+
+        // Enviamos solo los datos necesarios
+        const responseData = {
           id: user.id,
           username: user.username,
-          role: user.role
+          role: user.role,
+          fullName: user.fullName
         };
-  
-        console.log('[Auth] Login successful:', {
-          ...userData,
-          session: req.sessionID
-        });
-  
-        res.json(userData);
+
+        console.log('[Auth] Login successful, sending response:', responseData);
+        res.json(responseData);
       });
     })(req, res, next);
   });

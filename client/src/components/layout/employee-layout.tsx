@@ -1,4 +1,4 @@
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, Redirect } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import {
   Clock,
@@ -30,6 +30,18 @@ export default function EmployeeLayout({ children }: { children: React.ReactNode
   const { user, logoutMutation } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [location] = useLocation();
+
+  // Si el usuario es admin, redirigir al panel de administración
+  if (user?.role === "admin") {
+    console.log("EmployeeLayout: Usuario es admin, redirigiendo a /admin");
+    return <Redirect to="/admin" />;
+  }
+
+  // Si no hay usuario, redirigir al login
+  if (!user) {
+    console.log("EmployeeLayout: No hay usuario, redirigiendo a /auth");
+    return <Redirect to="/auth" />;
+  }
 
   const { data: settings } = useQuery({
     queryKey: ["/api/user/settings"],
@@ -129,12 +141,12 @@ export default function EmployeeLayout({ children }: { children: React.ReactNode
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={user?.avatar} />
                   <AvatarFallback>
-                    {user?.fullName?.split(" ").map(n => n[0]).join("")}
+                    {user?.fullName?.split(" ").map((n: string) => n[0]).join("")}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col items-start">
                   <span className="text-sm font-semibold">{user?.fullName}</span>
-                  <span className="text-xs text-white/80">Empleado</span>
+                  <span className="text-xs text-white/80">{user.role === "admin" ? "Administrador" : "Empleado"}</span>
                 </div>
               </Button>
             </DropdownMenuTrigger>
