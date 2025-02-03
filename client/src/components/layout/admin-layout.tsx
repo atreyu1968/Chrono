@@ -1,4 +1,4 @@
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, Redirect } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import {
   LayoutDashboard,
@@ -92,6 +92,11 @@ interface SelectMessage {
 
 const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   const { user, logoutMutation } = useAuth();
+
+  if (!user || user.role !== "admin") {
+    return <Redirect to="/" />;
+  }
+
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [location] = useLocation();
