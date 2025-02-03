@@ -7,6 +7,7 @@ import {
 import type { SelectUser, InsertUser } from "@db/schema";
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 import { startAuthentication } from "@simplewebauthn/browser";
 
 type AuthContextType = {
@@ -22,8 +23,11 @@ type AuthContextType = {
 type LoginData = Pick<InsertUser, "username" | "password">;
 
 export const AuthContext = React.createContext<AuthContextType | null>(null);
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
+
   const {
     data: user,
     error,
@@ -35,13 +39,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
+      console.log('Attempting login with credentials:', { username: credentials.username });
       const res = await apiRequest("POST", "/api/login", credentials);
-      return await res.json();
+      const data = await res.json();
+      console.log('Login response:', data);
+      return data;
     },
     onSuccess: (user: SelectUser) => {
+      console.log('Login successful, user data:', user);
       queryClient.setQueryData(["/api/user"], user);
+      // Redirigir basado en el rol
+      if (user.role === "admin") {
+        console.log('Redirecting admin to /admin');
+        setLocation("/admin");
+      } else {
+        console.log('Redirecting employee to /check-in');
+        setLocation("/check-in");
+      }
     },
     onError: (error: Error) => {
+      console.error('Login error:', error);
       toast({
         title: "Error de inicio de sesión",
         description: error.message,
@@ -73,6 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     },
     onSuccess: () => {
       queryClient.setQueryData(["/api/user"], null);
+      setLocation("/auth");
     },
     onError: (error: Error) => {
       toast({
