@@ -24,65 +24,93 @@ import { useAuth } from "@/hooks/use-auth";
 
 // Helper component for admin-only routes
 const AdminRoute = ({ component: Component }: { component: React.ComponentType }) => {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
 
   if (!user) {
+    console.log('AdminRoute: No user, redirecting to /auth');
     return <Redirect to="/auth" />;
   }
 
   if (user.role !== "admin") {
+    console.log('AdminRoute: User is not admin, redirecting to /check-in');
     return <Redirect to="/check-in" />;
   }
 
+  console.log('AdminRoute: Rendering admin component for user:', user);
   return <Component />;
 };
 
 // Helper component for employee-only routes
 const EmployeeRoute = ({ component: Component }: { component: React.ComponentType }) => {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
 
   if (!user) {
+    console.log('EmployeeRoute: No user, redirecting to /auth');
     return <Redirect to="/auth" />;
   }
 
   if (user.role === "admin") {
+    console.log('EmployeeRoute: User is admin, redirecting to /admin');
     return <Redirect to="/admin" />;
   }
 
+  console.log('EmployeeRoute: Rendering employee component for user:', user);
   return <Component />;
 };
 
 function Router() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
+
+  console.log('Router: Current user state:', { user, isLoading });
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <Switch>
       {/* Auth route */}
       <Route path="/auth">
         {() => {
+          console.log('Auth route: Current user:', user);
           if (user) {
-            return user.role === "admin" ? 
-              <Redirect to="/admin" /> : 
-              <Redirect to="/check-in" />;
+            if (user.role === "admin") {
+              console.log('Auth route: Redirecting admin to /admin');
+              return <Redirect to="/admin" />;
+            }
+            console.log('Auth route: Redirecting employee to /check-in');
+            return <Redirect to="/check-in" />;
           }
           return <AuthPage />;
         }}
       </Route>
 
       {/* Root route */}
-      <Route path="/">
+      <Route path="/" exact>
         {() => {
+          console.log('Root route: Current user:', user);
           if (!user) {
             return <Redirect to="/auth" />;
           }
-          return user.role === "admin" ? 
-            <Redirect to="/admin" /> : 
-            <Redirect to="/check-in" />;
+          if (user.role === "admin") {
+            console.log('Root route: Redirecting admin to /admin');
+            return <Redirect to="/admin" />;
+          }
+          console.log('Root route: Redirecting employee to /check-in');
+          return <Redirect to="/check-in" />;
         }}
       </Route>
 
       {/* Admin routes */}
-      <Route path="/admin" component={() => <AdminRoute component={AdminDashboard} />} />
+      <Route path="/admin" exact component={() => <AdminRoute component={AdminDashboard} />} />
       <Route path="/admin/locations" component={() => <AdminRoute component={AdminLocations} />} />
       <Route path="/admin/users" component={() => <AdminRoute component={AdminUsers} />} />
       <Route path="/admin/departments" component={() => <AdminRoute component={AdminDepartments} />} />
