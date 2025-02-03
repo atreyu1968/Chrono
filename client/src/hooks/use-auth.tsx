@@ -10,6 +10,14 @@ import { useLocation } from "wouter";
 
 type LoginData = Pick<InsertUser, "username" | "password">;
 
+type AuthContextType = {
+  user: SelectUser | null;
+  isLoading: boolean;
+  error: Error | null;
+  loginMutation: ReturnType<typeof useMutation>;
+  logoutMutation: ReturnType<typeof useMutation>;
+};
+
 export const AuthContext = React.createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -29,9 +37,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     mutationFn: async (credentials: LoginData) => {
       console.log('Iniciando login con:', credentials.username);
       const res = await apiRequest("POST", "/api/login", credentials);
-      const data = await res.json();
-      console.log('Respuesta del servidor:', data);
-      return data;
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Error al iniciar sesión");
+      }
+      return res.json();
     },
     onSuccess: (userData: SelectUser) => {
       console.log('Login exitoso:', userData);
