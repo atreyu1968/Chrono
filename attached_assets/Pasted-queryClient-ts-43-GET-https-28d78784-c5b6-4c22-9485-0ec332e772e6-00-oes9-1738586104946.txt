@@ -1,0 +1,95 @@
+queryClient.ts:43 
+        
+        
+       GET https://28d78784-c5b6-4c22-9485-0ec332e772e6-00-oes999q2rhhh.janeway.replit.dev/api/user/settings 401 (Unauthorized)
+(anónimo) @ queryClient.ts:43
+fetchFn @ @tanstack_react-query.js?v=67412e35:842
+run @ @tanstack_react-query.js?v=67412e35:493
+start @ @tanstack_react-query.js?v=67412e35:535
+fetch @ @tanstack_react-query.js?v=67412e35:929
+executeFetch_fn @ @tanstack_react-query.js?v=67412e35:2243
+onSubscribe @ @tanstack_react-query.js?v=67412e35:1930
+subscribe @ @tanstack_react-query.js?v=67412e35:24
+(anónimo) @ @tanstack_react-query.js?v=67412e35:3056
+subscribeToStore @ chunk-RPCDYKBN.js?v=67412e35:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=67412e35:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=67412e35:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=67412e35:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=67412e35:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=67412e35:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=67412e35:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=67412e35:19447
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=67412e35:18868
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=67412e35:9119
+commitRootImpl @ chunk-RPCDYKBN.js?v=67412e35:19432
+commitRoot @ chunk-RPCDYKBN.js?v=67412e35:19277
+finishConcurrentRender @ chunk-RPCDYKBN.js?v=67412e35:18805
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=67412e35:18718
+workLoop @ chunk-RPCDYKBN.js?v=67412e35:197
+flushWork @ chunk-RPCDYKBN.js?v=67412e35:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=67412e35:384Entender este errorAI
+queryClient.ts:43 
+        
+        
+       GET https://28d78784-c5b6-4c22-9485-0ec332e772e6-00-oes999q2rhhh.janeway.replit.dev/api/user 401 (Unauthorized)
+(anónimo) @ queryClient.ts:43
+fetchFn @ @tanstack_react-query.js?v=67412e35:842
+run @ @tanstack_react-query.js?v=67412e35:493
+start @ @tanstack_react-query.js?v=67412e35:535
+fetch @ @tanstack_react-query.js?v=67412e35:929
+executeFetch_fn @ @tanstack_react-query.js?v=67412e35:2243
+onSubscribe @ @tanstack_react-query.js?v=67412e35:1930
+subscribe @ @tanstack_react-query.js?v=67412e35:24
+(anónimo) @ @tanstack_react-query.js?v=67412e35:3056
+subscribeToStore @ chunk-RPCDYKBN.js?v=67412e35:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=67412e35:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=67412e35:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=67412e35:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=67412e35:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=67412e35:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=67412e35:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=67412e35:19447
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=67412e35:18868
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=67412e35:9119
+commitRootImpl @ chunk-RPCDYKBN.js?v=67412e35:19432
+commitRoot @ chunk-RPCDYKBN.js?v=67412e35:19277
+finishConcurrentRender @ chunk-RPCDYKBN.js?v=67412e35:18805
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=67412e35:18718
+workLoop @ chunk-RPCDYKBN.js?v=67412e35:197
+flushWork @ chunk-RPCDYKBN.js?v=67412e35:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=67412e35:384Entender este errorAI
+auth:1 Uncaught (in promise) Error: A listener indicated an asynchronous response by returning true, but the message channel closed before a response was receivedEntender este errorAI
+queryClient.ts:26 
+        
+        
+       POST https://28d78784-c5b6-4c22-9485-0ec332e772e6-00-oes999q2rhhh.janeway.replit.dev/api/login 401 (Unauthorized)
+apiRequest @ queryClient.ts:26
+mutationFn @ use-auth.tsx:38
+fn @ @tanstack_react-query.js?v=67412e35:1192
+run @ @tanstack_react-query.js?v=67412e35:493
+start @ @tanstack_react-query.js?v=67412e35:535
+execute @ @tanstack_react-query.js?v=67412e35:1228
+await in execute
+mutate @ @tanstack_react-query.js?v=67412e35:2655
+onLogin @ auth-page.tsx:56
+(anónimo) @ chunk-JRXU44SF.js?v=67412e35:1683
+await in (anónimo)
+callCallback2 @ chunk-RPCDYKBN.js?v=67412e35:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=67412e35:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=67412e35:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=67412e35:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=67412e35:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=67412e35:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=67412e35:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=67412e35:7051
+(anónimo) @ chunk-RPCDYKBN.js?v=67412e35:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=67412e35:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=67412e35:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=67412e35:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=67412e35:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=67412e35:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=67412e35:5449Entender este errorAI
+queryClient.ts:43 
+        
+        
+       GET https://28d78784-c5b6-4c22-9485-0ec332e772e6-00-oes999q2rhhh.janeway.replit.dev/api/attendance/history 401 (Unauthorized)

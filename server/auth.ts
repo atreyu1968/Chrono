@@ -40,19 +40,20 @@ export function setupAuth(app: Express) {
     tableName: 'session'
   });
 
-  // Updated session configuration
+  // Updated session configuration with more permissive settings for development
   const sessionSettings: session.SessionOptions = {
     secret: process.env.REPL_ID || 'development-secret',
-    resave: false,
-    saveUninitialized: false,
+    resave: true, // Changed to true to ensure session is saved
+    saveUninitialized: true, // Changed to true to create session for all requests
     store,
     name: 'sid',
     cookie: {
       secure: false, // Set to false for development
-      sameSite: "lax",
+      sameSite: 'lax',
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      path: '/'
+      path: '/',
+      domain: process.env.REPL_SLUG ? `${process.env.REPL_SLUG}.repl.co` : undefined
     }
   };
 
