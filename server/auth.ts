@@ -40,14 +40,15 @@ export function setupAuth(app: Express) {
     tableName: 'session'
   });
 
+  // Updated session configuration
   const sessionSettings: session.SessionOptions = {
-    secret: process.env.REPL_ID!,
+    secret: process.env.REPL_ID || 'development-secret',
     resave: false,
     saveUninitialized: false,
     store,
     name: 'sid',
     cookie: {
-      secure: app.get("env") === "production",
+      secure: false, // Set to false for development
       sameSite: "lax",
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
@@ -66,30 +67,37 @@ export function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
+  // Updated LocalStrategy implementation
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
         const [user] = await getUserByUsername(username);
         if (!user) {
+          console.log('Authentication failed: User not found');
           return done(null, false, { message: "Credenciales inválidas" });
         }
 
         const isValidPassword = await comparePasswords(password, user.password);
         if (!isValidPassword) {
+          console.log('Authentication failed: Invalid password');
           return done(null, false, { message: "Credenciales inválidas" });
         }
 
-        console.log('Usuario autenticado correctamente:', { id: user.id, username: user.username, role: user.role });
+        console.log('User authenticated successfully:', {
+          id: user.id,
+          username: user.username,
+          role: user.role
+        });
         return done(null, user);
       } catch (error) {
-        console.error('Error en autenticación:', error);
+        console.error('Authentication error:', error);
         return done(error);
       }
     })
   );
 
   passport.serializeUser((user, done) => {
-    console.log('Serializando usuario:', user.id);
+    console.log('Serializing user:', user.id);
     done(null, user.id);
   });
 
@@ -102,58 +110,87 @@ export function setupAuth(app: Express) {
         .limit(1);
 
       if (!user) {
-        console.log('Usuario no encontrado en deserialización:', id);
+        console.log('User not found during deserialization:', id);
         return done(null, false);
       }
-      console.log('Usuario deserializado:', { id: user.id, username: user.username, role: user.role });
+
+      console.log('User deserialized:', {
+        id: user.id,
+        username: user.username,
+        role: user.role
+      });
       done(null, user);
     } catch (error) {
-      console.error('Error en deserialización:', error);
+      console.error('Deserialization error:', error);
       done(error);
     }
   });
 
+  // Updated login route with better error handling and logging
   app.post("/api/login", (req, res, next) => {
+    console.log('Login attempt for username:', req.body.username);
+
     passport.authenticate("local", (err: Error | null, user: Express.User | false, info: { message: string } | undefined) => {
       if (err) {
-        console.error('Error en login:', err);
-        return res.status(500).json({ error: err.message });
+        console.error('Login error:', err);
+        return res.status(500).json({ error: "Error interno del servidor" });
       }
+
       if (!user) {
-        console.log('Intento de login fallido:', info?.message);
+        console.log('Login failed:', info?.message);
         return res.status(401).json({ error: info?.message || "Credenciales inválidas" });
       }
+
       req.login(user, (err) => {
         if (err) {
-          console.error('Error en login session:', err);
-          return res.status(500).json({ error: err.message });
+          console.error('Session creation error:', err);
+          return res.status(500).json({ error: "Error al crear la sesión" });
         }
-        console.log('Usuario autenticado:', { id: user.id, username: user.username, role: user.role });
+
+        console.log('Login successful:', {
+          id: user.id,
+          username: user.username,
+          role: user.role
+        });
         res.json(user);
       });
     })(req, res, next);
   });
 
+  // Updated logout route with better error handling
   app.post("/api/logout", (req, res, next) => {
     const userId = req.user?.id;
-    console.log('Logout solicitado para usuario:', userId);
+    console.log('Logout requested for user:', userId);
+
     req.logout((err) => {
-      if (err) return next(err);
+      if (err) {
+        console.error('Logout error:', err);
+        return next(err);
+      }
+
       req.session.destroy((err) => {
-        if (err) return next(err);
+        if (err) {
+          console.error('Session destruction error:', err);
+          return next(err);
+        }
+
         res.clearCookie('sid');
-        console.log('Logout completado para usuario:', userId);
+        console.log('Logout completed for user:', userId);
         res.sendStatus(200);
       });
     });
   });
 
+  // Updated user info route with better error handling
   app.get("/api/user", (req, res) => {
-    console.log('Sesión actual:', req.user);
+    console.log('User info requested. Authenticated:', req.isAuthenticated());
+    console.log('Current session user:', req.user);
+
     if (!req.isAuthenticated()) {
-      console.log('Usuario no autenticado en /api/user');
+      console.log('Unauthorized access attempt to /api/user');
       return res.sendStatus(401);
     }
+
     res.json(req.user);
   });
 }
