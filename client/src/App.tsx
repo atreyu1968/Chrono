@@ -1,5 +1,5 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { Switch, Route, Redirect } from "wouter";
+import { Switch, Route } from "wouter";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { queryClient } from "./lib/queryClient";
@@ -25,55 +25,53 @@ import { useAuth } from "@/hooks/use-auth";
 function Router() {
   const { user } = useAuth();
 
+  // Redirigir a /auth si no hay usuario
+  if (!user) {
+    return (
+      <Switch>
+        <Route path="/auth" component={AuthPage} />
+        <Route>
+          <Route path="*">
+            <AuthPage />
+          </Route>
+        </Route>
+      </Switch>
+    );
+  }
+
+  // Rutas basadas en rol
+  if (user.role === "admin") {
+    return (
+      <Switch>
+        {/* Rutas de administrador */}
+        <Route path="/admin" component={AdminDashboard} />
+        <Route path="/admin/locations" component={AdminLocations} />
+        <Route path="/admin/users" component={AdminUsers} />
+        <Route path="/admin/departments" component={AdminDepartments} />
+        <Route path="/admin/holidays" component={AdminHolidays} />
+        <Route path="/admin/settings" component={AdminSettings} />
+        <Route path="/admin/users/:userId/attendance" component={UserAttendancePage} />
+        <Route path="/admin/attendance-records" component={AttendanceRecordsPage} />
+        <Route path="/admin/messages" component={AdminMessages} />
+        {/* Redirigir cualquier otra ruta al dashboard de admin */}
+        <Route path="*">
+          <AdminDashboard />
+        </Route>
+      </Switch>
+    );
+  }
+
+  // Rutas de empleado
   return (
     <Switch>
-      {/* Authentication route */}
-      <Route path="/auth">
-        {() => {
-          if (user) {
-            if (user.role === "admin") {
-              return <Redirect to="/admin" />;
-            } else {
-              return <Redirect to="/check-in" />;
-            }
-          }
-          return <AuthPage />;
-        }}
+      <Route path="/check-in" component={EmployeeCheckIn} />
+      <Route path="/attendance" component={EmployeeAttendance} />
+      <Route path="/settings" component={EmployeeSettings} />
+      <Route path="/messages" component={EmployeeMessages} />
+      {/* Redirigir cualquier otra ruta a check-in */}
+      <Route path="*">
+        <EmployeeCheckIn />
       </Route>
-
-      {/* Root route */}
-      <Route path="/">
-        {() => {
-          if (!user) {
-            return <Redirect to="/auth" />;
-          }
-          return user.role === "admin" ? (
-            <Redirect to="/admin" />
-          ) : (
-            <Redirect to="/check-in" />
-          );
-        }}
-      </Route>
-
-      {/* Admin routes with requireAdmin prop */}
-      <ProtectedRoute path="/admin" component={AdminDashboard} requireAdmin />
-      <ProtectedRoute path="/admin/locations" component={AdminLocations} requireAdmin />
-      <ProtectedRoute path="/admin/users" component={AdminUsers} requireAdmin />
-      <ProtectedRoute path="/admin/departments" component={AdminDepartments} requireAdmin />
-      <ProtectedRoute path="/admin/holidays" component={AdminHolidays} requireAdmin />
-      <ProtectedRoute path="/admin/settings" component={AdminSettings} requireAdmin />
-      <ProtectedRoute path="/admin/users/:userId/attendance" component={UserAttendancePage} requireAdmin />
-      <ProtectedRoute path="/admin/attendance-records" component={AttendanceRecordsPage} requireAdmin />
-      <ProtectedRoute path="/admin/messages" component={AdminMessages} requireAdmin />
-
-      {/* Employee routes */}
-      <ProtectedRoute path="/check-in" component={EmployeeCheckIn} />
-      <ProtectedRoute path="/attendance" component={EmployeeAttendance} />
-      <ProtectedRoute path="/settings" component={EmployeeSettings} />
-      <ProtectedRoute path="/messages" component={EmployeeMessages} />
-
-      {/* 404 route */}
-      <Route component={NotFound} />
     </Switch>
   );
 }
