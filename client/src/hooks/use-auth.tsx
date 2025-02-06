@@ -37,15 +37,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const loginMutation = useMutation<SelectUser, Error, LoginData>({
     mutationFn: async (credentials: LoginData) => {
       try {
+        console.log('Attempting login with username:', credentials.username);
         const res = await apiRequest("POST", "/api/login", credentials);
         const data = await res.json();
+        console.log('Login response:', data);
 
         if (!res.ok) {
+          console.error('Login failed:', data.error);
           throw new Error(data.error || "Error al iniciar sesión");
         }
 
+        console.log('Login successful:', data);
         return data;
       } catch (error) {
+        console.error('Login error:', error);
         if (error instanceof Error) {
           throw error;
         }
@@ -53,11 +58,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     },
     onSuccess: (userData: SelectUser) => {
+      console.log('Login mutation success, user data:', userData);
       queryClient.setQueryData(["/api/user"], userData);
       const route = userData.role === "admin" ? "/admin" : "/check-in";
+      console.log('Redirecting to:', route);
       navigate(route);
     },
     onError: (error: Error) => {
+      console.error('Login mutation error:', error);
       toast({
         title: "Error de inicio de sesión",
         description: error.message,
