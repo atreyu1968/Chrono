@@ -39,8 +39,11 @@ export function ProtectedRoute({
     );
   }
 
-  // Admin route check
-  if (requireAdmin && user.role !== "admin") {
+  const isAdminRoute = path.startsWith('/admin');
+  const isAdminUser = user.role === "admin";
+
+  // Si es ruta de admin y usuario no es admin -> redirigir a /check-in
+  if (isAdminRoute && !isAdminUser) {
     console.log('Access denied: Non-admin user trying to access admin route');
     return (
       <Route path={path}>
@@ -49,9 +52,9 @@ export function ProtectedRoute({
     );
   }
 
-  // Employee route check - redirect admins to admin dashboard
-  if (!requireAdmin && !path.startsWith('/admin') && user.role === "admin") {
-    console.log('Admin user accessing employee route, redirecting to admin dashboard');
+  // Si es admin y accede a ruta no-admin -> redirigir a /admin
+  if (isAdminUser && !isAdminRoute) {
+    console.log('Admin user accessing non-admin route, redirecting to admin dashboard');
     return (
       <Route path={path}>
         <Redirect to="/admin" />
