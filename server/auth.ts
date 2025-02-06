@@ -51,36 +51,46 @@ export function setupAuth(app: Express) {
 
   passport.use(new LocalStrategy(async (username, password, done) => {
     try {
+      console.log('Login attempt for user:', username); 
       const [user] = await db
         .select()
         .from(users)
         .where(eq(users.username, username))
         .limit(1);
 
+      console.log('Found user:', user); 
+
       if (!user || !(await comparePasswords(password, user.password))) {
+        console.log('Invalid credentials for user:', username); 
         return done(null, false, { message: "Invalid credentials" });
       }
 
+      console.log('Successful login for user:', username, 'with role:', user.role); 
       return done(null, user);
     } catch (error) {
+      console.error('Error during authentication:', error); 
       return done(error);
     }
   }));
 
   passport.serializeUser((user, done) => {
+    console.log('Serializing user:', user.id, user.role); 
     done(null, user.id);
   });
 
   passport.deserializeUser(async (id: number, done) => {
     try {
+      console.log('Deserializing user:', id); 
       const [user] = await db
         .select()
         .from(users)
         .where(eq(users.id, id))
         .limit(1);
 
+      console.log('Deserialized user:', user); 
       done(null, user);
     } catch (error) {
+      console.error('Error deserializing user:', error); 
       done(error);
     }
   });
@@ -93,6 +103,7 @@ export function setupAuth(app: Express) {
 
       req.login(user, (err) => {
         if (err) return next(err);
+        console.log('Sending user response:', user); 
         res.json({
           id: user.id,
           username: user.username,
@@ -112,6 +123,7 @@ export function setupAuth(app: Express) {
 
   app.get("/api/user", (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
+    console.log('Current user session:', req.user); 
     res.json(req.user);
   });
 }
