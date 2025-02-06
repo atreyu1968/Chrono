@@ -14,6 +14,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -126,6 +127,11 @@ export default function LocationsPage() {
                 <DialogTitle>
                   {editingLocation ? "Edit Location" : "Add New Location"}
                 </DialogTitle>
+                <DialogDescription>
+                  {editingLocation
+                    ? "Update the details of this work location."
+                    : "Add a new work location by providing the required information below."}
+                </DialogDescription>
               </DialogHeader>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -246,7 +252,7 @@ export default function LocationsPage() {
                     <Button
                       variant="link"
                       className="p-0 h-auto font-normal text-left hover:text-primary"
-                      onClick={() => openInMaps(location)}
+                      onClick={() => window.open(`https://www.google.com/maps?q=${location.latitude},${location.longitude}`, '_blank')}
                     >
                       <MapPin className="h-4 w-4 inline-block mr-1" />
                       {location.address}

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -109,15 +110,6 @@ export default function DepartmentsPage() {
     }
   }
 
-  function handleEdit(department: any) {
-    setSelectedDepartment(department);
-    form.reset({
-      name: department.name,
-      description: department.description || "",
-    });
-    setIsDialogOpen(true);
-  }
-
   return (
     <AdminLayout>
       <div className="container mx-auto py-8">
@@ -141,6 +133,11 @@ export default function DepartmentsPage() {
                 <DialogTitle>
                   {selectedDepartment ? "Editar" : "Nuevo"} Departamento
                 </DialogTitle>
+                <DialogDescription>
+                  {selectedDepartment 
+                    ? "Modifique los datos del departamento según sea necesario." 
+                    : "Complete los datos para crear un nuevo departamento."}
+                </DialogDescription>
               </DialogHeader>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -195,7 +192,14 @@ export default function DepartmentsPage() {
                   <Button
                     variant="outline"
                     size="icon"
-                    onClick={() => handleEdit(department)}
+                    onClick={() => {
+                      setSelectedDepartment(department);
+                      form.reset({
+                        name: department.name,
+                        description: department.description || "",
+                      });
+                      setIsDialogOpen(true);
+                    }}
                   >
                     <Pencil className="h-4 w-4" />
                   </Button>
