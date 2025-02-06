@@ -28,39 +28,24 @@ async function hashPassword(password: string) {
 
 async function comparePasswords(supplied: string, stored: string) {
   try {
+    // Logging para debug
     console.log('Comparing passwords:');
-    console.log('- Supplied password:', supplied);
-    console.log('- Stored hash:', stored);
+    console.log('- Supplied password length:', supplied?.length);
+    console.log('- Stored hash length:', stored?.length);
 
+    // Validación de entrada
     if (!stored || !supplied) {
       console.error('Invalid password data:', { supplied: !!supplied, stored: !!stored });
       return false;
     }
 
+    // Comparación
     const isMatch = await bcrypt.compare(supplied, stored);
     console.log('Password comparison result:', isMatch);
     return isMatch;
   } catch (error) {
     console.error('Error comparing passwords:', error);
     return false;
-  }
-}
-
-async function getUserByUsername(username: string) {
-  try {
-    console.log('Looking up user:', username);
-    const [user] = await db.select().from(users)
-      .where(eq(users.username, username))
-      .limit(1);
-
-    console.log('User lookup result:', user ? 'found' : 'not found');
-    if (user) {
-      console.log('User data:', { id: user.id, username: user.username, role: user.role });
-    }
-    return user;
-  } catch (error) {
-    console.error('Database error in getUserByUsername:', error);
-    throw error;
   }
 }
 
@@ -89,6 +74,7 @@ export function setupAuth(app: Express) {
     try {
       const { username, password } = req.body;
       console.log('Login attempt:', username);
+      console.log('Request body:', req.body);
 
       // Buscar usuario
       const [user] = await db.select().from(users)
@@ -99,6 +85,8 @@ export function setupAuth(app: Express) {
         console.log('User not found:', username);
         return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
       }
+
+      console.log('User found:', { id: user.id, username: user.username });
 
       // Verificar contraseña
       const validPassword = await comparePasswords(password, user.password);
@@ -117,6 +105,8 @@ export function setupAuth(app: Express) {
       };
 
       console.log('Login successful:', username);
+      console.log('Session:', req.session);
+
       res.json(req.session.user);
     } catch (error) {
       console.error('Login error:', error);
