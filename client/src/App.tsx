@@ -26,6 +26,7 @@ function Router() {
   if (user.role === "admin") {
     return (
       <Switch>
+        <Route path="/admin/dashboard" component={AdminDashboard} />
         <Route path="/admin" component={AdminDashboard} />
         <Route>
           <AdminDashboard />
