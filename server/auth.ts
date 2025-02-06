@@ -23,14 +23,24 @@ async function hashPassword(password: string) {
 }
 
 async function comparePasswords(supplied: string, stored: string) {
-  return bcrypt.compare(supplied, stored);
+  try {
+    return await bcrypt.compare(supplied, stored);
+  } catch (error) {
+    console.error('Error comparing passwords:', error);
+    return false;
+  }
 }
 
 async function getUserByUsername(username: string) {
-  const result = await db.select().from(users)
-    .where(eq(users.username, username))
-    .limit(1);
-  return result;
+  try {
+    const result = await db.select().from(users)
+      .where(eq(users.username, username))
+      .limit(1);
+    return result;
+  } catch (error) {
+    console.error('Error getting user:', error);
+    return [];
+  }
 }
 
 export function setupAuth(app: Express) {
@@ -76,20 +86,24 @@ export function setupAuth(app: Express) {
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
+        console.log('Attempting login for user:', username);
         const [user] = await getUserByUsername(username);
 
         if (!user) {
-          return done(null, false, { message: "Credenciales inválidas" });
+          console.log('User not found:', username);
+          return done(null, false, { message: "Usuario o contraseña incorrectos" });
         }
 
         const isValidPassword = await comparePasswords(password, user.password);
+        console.log('Password validation:', isValidPassword ? 'successful' : 'failed');
 
         if (!isValidPassword) {
-          return done(null, false, { message: "Credenciales inválidas" });
+          return done(null, false, { message: "Usuario o contraseña incorrectos" });
         }
 
         return done(null, user);
       } catch (error) {
+        console.error('Error in LocalStrategy:', error);
         return done(error);
       }
     })
@@ -121,23 +135,28 @@ export function setupAuth(app: Express) {
   app.post("/api/login", (req, res, next) => {
     passport.authenticate("local", (err: Error | null, user: Express.User | false, info: { message: string } | undefined) => {
       if (err) {
+        console.error('Authentication error:', err);
         return res.status(500).json({ error: "Error interno del servidor" });
       }
 
       if (!user) {
-        return res.status(401).json({ error: info?.message || "Credenciales inválidas" });
+        console.log('Authentication failed:', info?.message);
+        return res.status(401).json({ error: info?.message || "Usuario o contraseña incorrectos" });
       }
 
       req.login(user, (err) => {
         if (err) {
-          return res.status(500).json({ error: "Error al crear la sesión" });
+          console.error('Login error:', err);
+          return res.status(500).json({ error: "Error al iniciar sesión" });
         }
 
-        res.json({
+        console.log('Login successful for user:', user.username);
+        return res.status(200).json({
           id: user.id,
           username: user.username,
           role: user.role,
-          fullName: user.fullName
+          fullName: user.fullName,
+          email: user.email
         });
       });
     })(req, res, next);

@@ -2,6 +2,7 @@ import React from "react";
 import {
   useQuery,
   useMutation,
+  UseMutationResult
 } from "@tanstack/react-query";
 import type { SelectUser, InsertUser } from "@db/schema";
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
@@ -14,8 +15,8 @@ type AuthContextType = {
   user: SelectUser | null;
   isLoading: boolean;
   error: Error | null;
-  loginMutation: ReturnType<typeof useMutation>;
-  logoutMutation: ReturnType<typeof useMutation>;
+  loginMutation: UseMutationResult<SelectUser, Error, LoginData>;
+  logoutMutation: UseMutationResult<void, Error, void>;
 };
 
 export const AuthContext = React.createContext<AuthContextType | null>(null);
@@ -33,16 +34,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     queryFn: getQueryFn({ on401: "returnNull" }),
   });
 
-  const loginMutation = useMutation({
+  const loginMutation = useMutation<SelectUser, Error, LoginData>({
     mutationFn: async (credentials: LoginData) => {
-      const res = await apiRequest("POST", "/api/login", credentials);
-      const data = await res.json();
+      try {
+        const res = await apiRequest("POST", "/api/login", credentials);
+        const data = await res.json();
 
-      if (!res.ok) {
-        throw new Error(data.error || "Error al iniciar sesión");
+        if (!res.ok) {
+          throw new Error(data.error || "Error al iniciar sesión");
+        }
+
+        return data;
+      } catch (error) {
+        if (error instanceof Error) {
+          throw error;
+        }
+        throw new Error("Error al iniciar sesión");
       }
-
-      return data;
     },
     onSuccess: (userData: SelectUser) => {
       queryClient.setQueryData(["/api/user"], userData);
@@ -58,7 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     },
   });
 
-  const logoutMutation = useMutation({
+  const logoutMutation = useMutation<void, Error, void>({
     mutationFn: async () => {
       await apiRequest("POST", "/api/logout");
     },
