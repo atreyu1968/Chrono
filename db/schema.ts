@@ -3,14 +3,7 @@ import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
 import { z } from "zod";
 
-export const departments = pgTable("departments", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  description: text("description"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull()
-});
-
+// User schema for authentication
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").unique().notNull(),
@@ -19,21 +12,24 @@ export const users = pgTable("users", {
   employeeType: text("employee_type", { 
     enum: ["profesor", "pas"] 
   }).default("pas").notNull(),
-  medusaUser: text("medusa_user").unique(),
   fullName: text("full_name").notNull(),
   email: text("email").unique().notNull(),
-  phone: text("phone"),
-  departmentId: integer("department_id").references(() => departments.id),
-  avatar: text("avatar_url"),
-  emergencyContact: text("emergency_contact"),
-  emergencyPhone: text("emergency_phone"),
-  biometricToken: text("biometric_token"),
-  pin: text("pin")
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  departmentId: integer("department_id").references(() => departments.id)
 }, (table) => ({
-  departmentIdIdx: index("user_department_id_idx").on(table.departmentId),
   usernameIdx: index("user_username_idx").on(table.username),
-  emailIdx: index("user_email_idx").on(table.email)
+  emailIdx: index("user_email_idx").on(table.email),
+  departmentIdIdx: index("user_department_id_idx").on(table.departmentId)
 }));
+
+export const departments = pgTable("departments", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
 
 export const locations = pgTable("locations", {
   id: serial("id").primaryKey(),
@@ -109,7 +105,7 @@ export const userSettings = pgTable("user_settings", {
 export const userSchedules = pgTable("user_schedules", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id).notNull(),
-  weekday: integer("weekday").notNull(), // 0-6, donde 0 es domingo
+  weekday: integer("weekday").notNull(), 
   startTime: time("start_time").notNull(),
   endTime: time("end_time").notNull(),
   enabled: boolean("enabled").default(true).notNull(),
@@ -137,20 +133,13 @@ export const userScheduleRelations = relations(userSchedules, ({ one }) => ({
   })
 }));
 
-export const userRelations = relations(users, ({ many, one }) => ({
-  attendance: many(attendance),
-  sentMessages: many(messages, { relationName: "sentMessages" }),
-  receivedMessages: many(messages, { relationName: "receivedMessages" }),
-  settings: one(userSettings, {
-    fields: [users.id],
-    references: [userSettings.userId],
-  }),
+export const userRelations = relations(users, ({ one }) => ({
   department: one(departments, {
     fields: [users.departmentId],
     references: [departments.id],
-  }),
-  schedules: many(userSchedules)
+  })
 }));
+
 
 export const locationRelations = relations(locations, ({ many }) => ({
   attendance: many(attendance)
@@ -204,8 +193,8 @@ export const insertDepartmentSchema = createInsertSchema(departments);
 export const selectDepartmentSchema = createSelectSchema(departments);
 
 export const insertUserSchema = createInsertSchema(users, {
+  username: z.string().min(3, "El nombre de usuario debe tener al menos 3 caracteres"),
   password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
-  username: z.string().min(1, "El nombre de usuario es requerido"),
   email: z.string().email("El email debe ser válido"),
   fullName: z.string().min(1, "El nombre completo es requerido"),
 });
