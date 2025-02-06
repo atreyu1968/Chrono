@@ -35,25 +35,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
-      console.log('Iniciando login con:', credentials.username);
       const res = await apiRequest("POST", "/api/login", credentials);
+      const data = await res.json();
+
       if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || "Error al iniciar sesión");
+        throw new Error(data.error || "Error al iniciar sesión");
       }
-      return res.json();
+
+      return data;
     },
     onSuccess: (userData: SelectUser) => {
-      console.log('Login exitoso:', userData);
       queryClient.setQueryData(["/api/user"], userData);
-
-      // Redirección simple basada en el rol
       const route = userData.role === "admin" ? "/admin" : "/check-in";
-      console.log(`Redirigiendo a ${route}`);
       navigate(route);
     },
     onError: (error: Error) => {
-      console.error('Error en login:', error);
       toast({
         title: "Error de inicio de sesión",
         description: error.message,
