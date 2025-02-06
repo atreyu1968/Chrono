@@ -42,11 +42,11 @@ async function comparePasswords(supplied: string, stored: string) {
 
 async function getUserByUsername(username: string) {
   try {
-    const result = await db.select().from(users)
+    const [user] = await db.select().from(users)
       .where(eq(users.username, username))
       .limit(1);
-    console.log('User lookup result:', result[0] ? 'found' : 'not found');
-    return result;
+    console.log('User lookup result:', user ? 'found' : 'not found');
+    return user;
   } catch (error) {
     console.error('Database error in getUserByUsername:', error);
     throw error;
@@ -97,7 +97,7 @@ export function setupAuth(app: Express) {
     new LocalStrategy(async (username, password, done) => {
       try {
         console.log('Attempting authentication for user:', username);
-        const [user] = await getUserByUsername(username);
+        const user = await getUserByUsername(username);
 
         if (!user) {
           console.log('Authentication failed: User not found');
@@ -130,11 +130,12 @@ export function setupAuth(app: Express) {
   passport.deserializeUser(async (id: number, done) => {
     try {
       console.log('Deserializing user:', id);
-      const [user] = await db
+      const user = await db
         .select()
         .from(users)
         .where(eq(users.id, id))
-        .limit(1);
+        .limit(1)
+        .then(rows => rows[0]);
 
       if (!user) {
         console.log('Deserialization failed: User not found');
