@@ -40,7 +40,3 @@ task = "packager.installForAll"
 task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5000
-
-[auth]
-pageEnabled = false
-buttonEnabled = true

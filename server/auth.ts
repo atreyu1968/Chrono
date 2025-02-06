@@ -1,124 +1,159 @@
+import passport from "passport";
+import { Strategy as LocalStrategy } from "passport-local";
 import { Express } from "express";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import bcrypt from "bcrypt";
-import { users } from "@db/schema";
+import { users, insertUserSchema, type SelectUser } from "@db/schema";
 import { db, pool } from "@db";
 import { eq } from "drizzle-orm";
+import { fromZodError } from "zod-validation-error";
 
-declare module 'express-session' {
-  interface SessionData {
-    user: {
-      id: number;
-      username: string;
-      role: string;
-      fullName: string;
-      email: string;
-    }
+declare global {
+  namespace Express {
+    interface User extends SelectUser {}
   }
 }
 
 const PostgresSessionStore = connectPg(session);
 
+async function hashPassword(password: string) {
+  const salt = await bcrypt.genSalt(10);
+  return bcrypt.hash(password, salt);
+}
+
+async function comparePasswords(supplied: string, stored: string) {
+  return bcrypt.compare(supplied, stored);
+}
+
+async function getUserByUsername(username: string) {
+  const result = await db.select().from(users)
+    .where(eq(users.username, username))
+    .limit(1);
+  return result;
+}
+
 export function setupAuth(app: Express) {
-  // Configuración de sesión
-  app.use(session({
-    store: new PostgresSessionStore({
-      pool,
-      tableName: 'session'
-    }),
-    secret: process.env.REPL_ID || 'desarrollo-secreto',
+  const store = new PostgresSessionStore({ 
+    pool, 
+    createTableIfMissing: true,
+    tableName: 'session'
+  });
+
+  const sessionSettings: session.SessionOptions = {
+    secret: process.env.REPL_ID!,
     resave: false,
     saveUninitialized: false,
+    store,
+    name: 'sid',
     cookie: {
-      secure: app.get('env') === 'production',
+      secure: app.get("env") === "production",
+      sameSite: "lax",
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000 // 24 horas
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      path: '/'
     }
-  }));
+  };
 
-  // Rutas de autenticación
-  app.post("/api/login", async (req, res) => {
-    try {
-      const { username, password } = req.body;
+  if (app.get("env") === "production") {
+    app.set("trust proxy", 1);
+    if (sessionSettings.cookie) {
+      sessionSettings.cookie.secure = true;
+    }
+  }
 
-      // Validar campos requeridos
-      if (!username || !password) {
-        return res.status(400).json({ 
-          error: 'Usuario y contraseña son requeridos' 
-        });
+  app.use(session(sessionSettings));
+  app.use(passport.initialize());
+  app.use(passport.session());
+
+  passport.use(
+    new LocalStrategy(async (username, password, done) => {
+      try {
+        const [user] = await getUserByUsername(username);
+        if (!user) {
+          return done(null, false, { message: "Credenciales inválidas" });
+        }
+
+        const isValidPassword = await comparePasswords(password, user.password);
+        if (!isValidPassword) {
+          return done(null, false, { message: "Credenciales inválidas" });
+        }
+
+        console.log('Usuario autenticado correctamente:', { id: user.id, username: user.username, role: user.role });
+        return done(null, user);
+      } catch (error) {
+        console.error('Error en autenticación:', error);
+        return done(error);
       }
+    })
+  );
 
-      // Buscar usuario
-      const [user] = await db.select().from(users)
-        .where(eq(users.username, username))
+  passport.serializeUser((user, done) => {
+    console.log('Serializando usuario:', user.id);
+    done(null, user.id);
+  });
+
+  passport.deserializeUser(async (id: number, done) => {
+    try {
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, id))
         .limit(1);
 
       if (!user) {
-        return res.status(401).json({ 
-          error: 'Usuario o contraseña incorrectos' 
-        });
+        console.log('Usuario no encontrado en deserialización:', id);
+        return done(null, false);
       }
-
-      // Validar contraseña
-      const isValidPassword = await bcrypt.compare(password, user.password);
-      if (!isValidPassword) {
-        return res.status(401).json({ 
-          error: 'Usuario o contraseña incorrectos' 
-        });
-      }
-
-      // Guardar usuario en sesión
-      req.session.user = {
-        id: user.id,
-        username: user.username,
-        role: user.role,
-        fullName: user.fullName,
-        email: user.email
-      };
-
-      // Devolver datos del usuario (sin contraseña)
-      const { password: _, ...userWithoutPassword } = user;
-      res.json(userWithoutPassword);
-
+      console.log('Usuario deserializado:', { id: user.id, username: user.username, role: user.role });
+      done(null, user);
     } catch (error) {
-      console.error('Error en login:', error);
-      res.status(500).json({ 
-        error: 'Error interno del servidor' 
-      });
+      console.error('Error en deserialización:', error);
+      done(error);
     }
   });
 
-  app.post("/api/logout", (req, res) => {
-    req.session.destroy((err) => {
+  app.post("/api/login", (req, res, next) => {
+    passport.authenticate("local", (err: Error | null, user: Express.User | false, info: { message: string } | undefined) => {
       if (err) {
-        console.error('Error en logout:', err);
-        return res.status(500).json({ 
-          error: 'Error al cerrar sesión' 
-        });
+        console.error('Error en login:', err);
+        return res.status(500).json({ error: err.message });
       }
-      res.sendStatus(200);
+      if (!user) {
+        console.log('Intento de login fallido:', info?.message);
+        return res.status(401).json({ error: info?.message || "Credenciales inválidas" });
+      }
+      req.login(user, (err) => {
+        if (err) {
+          console.error('Error en login session:', err);
+          return res.status(500).json({ error: err.message });
+        }
+        console.log('Usuario autenticado:', { id: user.id, username: user.username, role: user.role });
+        res.json(user);
+      });
+    })(req, res, next);
+  });
+
+  app.post("/api/logout", (req, res, next) => {
+    const userId = req.user?.id;
+    console.log('Logout solicitado para usuario:', userId);
+    req.logout((err) => {
+      if (err) return next(err);
+      req.session.destroy((err) => {
+        if (err) return next(err);
+        res.clearCookie('sid');
+        console.log('Logout completado para usuario:', userId);
+        res.sendStatus(200);
+      });
     });
   });
 
   app.get("/api/user", (req, res) => {
-    if (!req.session.user) {
+    console.log('Sesión actual:', req.user);
+    if (!req.isAuthenticated()) {
+      console.log('Usuario no autenticado en /api/user');
       return res.sendStatus(401);
     }
-    res.json(req.session.user);
-  });
-
-  // Middleware para rutas protegidas
-  app.use('/api/*', (req, res, next) => {
-    // Permitir rutas de autenticación
-    if (req.path === '/api/login' || req.path === '/api/logout' || req.path === '/api/user') {
-      return next();
-    }
-
-    // Verificar sesión
-    if (!req.session.user) {
-      return res.sendStatus(401);
-    }
-    next();
+    res.json(req.user);
   });
 }

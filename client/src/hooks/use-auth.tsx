@@ -2,87 +2,111 @@ import React from "react";
 import {
   useQuery,
   useMutation,
+  UseMutationResult,
 } from "@tanstack/react-query";
-import type { SelectUser } from "@db/schema";
+import type { SelectUser, InsertUser } from "@db/schema";
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "wouter";
-
-type LoginCredentials = {
-  username: string;
-  password: string;
-};
+import { startAuthentication } from "@simplewebauthn/browser";
 
 type AuthContextType = {
   user: SelectUser | null;
   isLoading: boolean;
   error: Error | null;
-  loginMutation: any;
-  logoutMutation: any;
+  loginMutation: UseMutationResult<SelectUser, Error, LoginData>;
+  logoutMutation: UseMutationResult<void, Error, void>;
+  registerMutation: UseMutationResult<SelectUser, Error, InsertUser>;
+  biometricLoginMutation: UseMutationResult<SelectUser, Error, void>;
 };
 
-export const AuthContext = React.createContext<AuthContextType | null>(null);
+type LoginData = Pick<InsertUser, "username" | "password">;
 
+export const AuthContext = React.createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
-  const [, navigate] = useLocation();
-
   const {
     data: user,
     error,
     isLoading,
-  } = useQuery<SelectUser>({
+  } = useQuery<SelectUser | undefined, Error>({
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
   });
 
   const loginMutation = useMutation({
-    mutationFn: async (credentials: LoginCredentials) => {
-      const response = await apiRequest("POST", "/api/login", credentials);
-      const data = await response.json();
-
-      if (!response.ok) {
-        toast({
-          title: "Error de inicio de sesión",
-          description: data.error || "Error al iniciar sesión",
-          variant: "destructive",
-        });
-        return null;
-      }
-
-      return data;
+    mutationFn: async (credentials: LoginData) => {
+      const res = await apiRequest("POST", "/api/login", credentials);
+      return await res.json();
     },
-    onSuccess: (data) => {
-      if (data) {
-        queryClient.setQueryData(["/api/user"], data);
-        toast({
-          title: "Inicio de sesión exitoso",
-          description: `Bienvenido, ${data.fullName || data.username}`,
-        });
-        navigate(data.role === "admin" ? "/admin" : "/check-in");
-      }
+    onSuccess: (user: SelectUser) => {
+      queryClient.setQueryData(["/api/user"], user);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error de inicio de sesión",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const registerMutation = useMutation({
+    mutationFn: async (newUser: InsertUser) => {
+      const res = await apiRequest("POST", "/api/register", newUser);
+      return await res.json();
+    },
+    onSuccess: (user: SelectUser) => {
+      queryClient.setQueryData(["/api/user"], user);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error de registro",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("POST", "/api/logout");
-      if (!response.ok) {
-        throw new Error("Error al cerrar sesión");
-      }
+      await apiRequest("POST", "/api/logout");
     },
     onSuccess: () => {
       queryClient.setQueryData(["/api/user"], null);
-      toast({
-        title: "Sesión cerrada",
-        description: "Has cerrado sesión correctamente",
-      });
-      navigate("/auth");
     },
-    onError: () => {
+    onError: (error: Error) => {
       toast({
-        title: "Error",
-        description: "No se pudo cerrar la sesión",
+        title: "Error al cerrar sesión",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const biometricLoginMutation = useMutation({
+    mutationFn: async () => {
+      // 1. Get challenge from server
+      const optionsRes = await apiRequest("GET", "/api/auth/biometric/challenge");
+      const options = await optionsRes.json();
+
+      // 2. Perform biometric authentication
+      const credential = await startAuthentication(options);
+
+      // 3. Verify with server
+      const verifyRes = await apiRequest("POST", "/api/auth/biometric/verify", credential);
+      return await verifyRes.json();
+    },
+    onSuccess: (user: SelectUser) => {
+      queryClient.setQueryData(["/api/user"], user);
+      toast({
+        title: "Autenticación biométrica exitosa",
+        description: "Has iniciado sesión correctamente",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error de autenticación biométrica",
+        description: error.message,
         variant: "destructive",
       });
     },
@@ -96,6 +120,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         error,
         loginMutation,
         logoutMutation,
+        registerMutation,
+        biometricLoginMutation,
       }}
     >
       {children}
