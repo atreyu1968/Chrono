@@ -27,10 +27,11 @@ async function comparePasswords(supplied: string, stored: string) {
 }
 
 async function getUserByUsername(username: string) {
-  const result = await db.select().from(users)
+  return db
+    .select()
+    .from(users)
     .where(eq(users.username, username))
     .limit(1);
-  return result;
 }
 
 export function setupAuth(app: Express) {
@@ -45,7 +46,7 @@ export function setupAuth(app: Express) {
     resave: false,
     saveUninitialized: false,
     store,
-    name: 'sid', // Custom cookie name
+    name: 'sid',
     cookie: {
       secure: app.get("env") === "production",
       sameSite: "lax",
@@ -81,7 +82,7 @@ export function setupAuth(app: Express) {
           return done(null, false, { message: "Credenciales inválidas" });
         }
 
-        console.log('User authenticated successfully:', { id: user.id, username: user.username });
+        console.log('User authenticated successfully:', { id: user.id, username: user.username, role: user.role });
         return done(null, user);
       } catch (error) {
         console.error('Authentication error:', error);
@@ -91,7 +92,7 @@ export function setupAuth(app: Express) {
   );
 
   passport.serializeUser((user, done) => {
-    console.log('Serializing user:', user.id);
+    console.log('Serializing user:', { id: user.id, role: user.role });
     done(null, user.id);
   });
 
@@ -109,7 +110,7 @@ export function setupAuth(app: Express) {
         return done(null, false);
       }
 
-      console.log('User deserialized successfully:', { id: user.id, username: user.username });
+      console.log('User deserialized successfully:', { id: user.id, username: user.username, role: user.role });
       done(null, user);
     } catch (error) {
       console.error('Deserialization error:', error);
@@ -117,7 +118,6 @@ export function setupAuth(app: Express) {
     }
   });
 
-  // Authentication routes
   app.post("/api/login", (req, res, next) => {
     passport.authenticate("local", (err: Error | null, user: Express.User | false, info: { message: string } | undefined) => {
       if (err) {
@@ -133,8 +133,17 @@ export function setupAuth(app: Express) {
           console.error('Login session error:', err);
           return res.status(500).json({ error: err.message });
         }
-        console.log('User logged in:', { id: user.id, username: user.username });
-        res.json(user);
+        // Include role in the response
+        const userResponse = {
+          id: user.id,
+          username: user.username,
+          role: user.role,
+          employeeType: user.employeeType,
+          fullName: user.fullName,
+          email: user.email
+        };
+        console.log('User logged in:', userResponse);
+        res.json(userResponse);
       });
     })(req, res, next);
   });
@@ -159,6 +168,16 @@ export function setupAuth(app: Express) {
       console.log('User not authenticated in /api/user');
       return res.sendStatus(401);
     }
-    res.json(req.user);
+    // Include role in the response
+    const user = req.user;
+    const userResponse = {
+      id: user.id,
+      username: user.username,
+      role: user.role,
+      employeeType: user.employeeType,
+      fullName: user.fullName,
+      email: user.email
+    };
+    res.json(userResponse);
   });
 }
