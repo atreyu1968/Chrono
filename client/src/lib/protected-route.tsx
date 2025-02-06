@@ -11,6 +11,7 @@ export function ProtectedRoute({
 }) {
   const { user, isLoading } = useAuth();
 
+  // Log current state for debugging
   console.log('ProtectedRoute:', {
     path,
     user: user ? { id: user.id, role: user.role } : null,
@@ -27,6 +28,7 @@ export function ProtectedRoute({
     );
   }
 
+  // If no user, redirect to auth
   if (!user) {
     console.log('No user found, redirecting to /auth');
     return (
@@ -36,22 +38,13 @@ export function ProtectedRoute({
     );
   }
 
-  const isAdminRoute = path.startsWith('/admin');
+  // Simple role-based routing logic
   const isAdminUser = user.role === "admin";
+  const isAdminRoute = path.startsWith('/admin');
 
-  // Si es ruta de admin y usuario no es admin -> redirigir a /check-in
-  if (isAdminRoute && !isAdminUser) {
-    console.log('Access denied: Non-admin user trying to access admin route');
-    return (
-      <Route path={path}>
-        <Redirect to="/check-in" />
-      </Route>
-    );
-  }
-
-  // Si es admin y accede a ruta no-admin -> redirigir a /admin
+  // Admin users should only access admin routes
   if (isAdminUser && !isAdminRoute) {
-    console.log('Admin user accessing non-admin route, redirecting to admin dashboard');
+    console.log('Admin user detected, redirecting to admin dashboard');
     return (
       <Route path={path}>
         <Redirect to="/admin" />
@@ -59,5 +52,16 @@ export function ProtectedRoute({
     );
   }
 
+  // Non-admin users should not access admin routes
+  if (!isAdminUser && isAdminRoute) {
+    console.log('Non-admin user trying to access admin route, redirecting to check-in');
+    return (
+      <Route path={path}>
+        <Redirect to="/check-in" />
+      </Route>
+    );
+  }
+
+  // If all checks pass, render the component
   return <Route path={path} component={Component} />;
 }
