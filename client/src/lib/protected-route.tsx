@@ -13,6 +13,13 @@ export function ProtectedRoute({
 }) {
   const { user, isLoading } = useAuth();
 
+  console.log('ProtectedRoute:', {
+    path,
+    user: user ? { id: user.id, role: user.role } : null,
+    requireAdmin,
+    isLoading
+  });
+
   if (isLoading) {
     return (
       <Route path={path}>
@@ -31,11 +38,22 @@ export function ProtectedRoute({
     );
   }
 
-  // Add admin role check
+  // Admin route check
   if (requireAdmin && user.role !== "admin") {
+    console.log('Access denied: Non-admin user trying to access admin route');
     return (
       <Route path={path}>
-        <Redirect to="/" />
+        <Redirect to="/check-in" />
+      </Route>
+    );
+  }
+
+  // Employee route check - redirect admins to admin dashboard
+  if (!requireAdmin && user.role === "admin") {
+    console.log('Redirecting admin to admin dashboard');
+    return (
+      <Route path={path}>
+        <Redirect to="/admin" />
       </Route>
     );
   }
