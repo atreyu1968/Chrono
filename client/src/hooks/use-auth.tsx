@@ -37,14 +37,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const loginMutation = useMutation<SelectUser, Error, LoginData>({
     mutationFn: async (credentials: LoginData) => {
       try {
-        console.log('Attempting login with username:', credentials.username);
+        console.log('Attempting login with credentials:', { username: credentials.username });
         const res = await apiRequest("POST", "/api/login", credentials);
         const data = await res.json();
         console.log('Login response:', data);
 
         if (!res.ok) {
-          console.error('Login failed:', data.error);
-          throw new Error(data.error || "Error al iniciar sesión");
+          const error = data.error || "Error al iniciar sesión";
+          console.error('Login failed:', error);
+          throw new Error(error);
         }
 
         console.log('Login successful:', data);
@@ -58,10 +59,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     },
     onSuccess: (userData: SelectUser) => {
-      console.log('Login mutation success, user data:', userData);
+      console.log('Login mutation success:', userData);
       queryClient.setQueryData(["/api/user"], userData);
+
+      // Determinar la ruta basada en el rol
       const route = userData.role === "admin" ? "/admin" : "/check-in";
       console.log('Redirecting to:', route);
+
+      // Mostrar mensaje de éxito
+      toast({
+        title: "Inicio de sesión exitoso",
+        description: `Bienvenido, ${userData.fullName || userData.username}`,
+      });
+
       navigate(route);
     },
     onError: (error: Error) => {
@@ -79,10 +89,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await apiRequest("POST", "/api/logout");
     },
     onSuccess: () => {
+      console.log('Logout successful');
       queryClient.setQueryData(["/api/user"], null);
+      toast({
+        title: "Sesión cerrada",
+        description: "Has cerrado sesión correctamente",
+      });
       navigate("/auth");
     },
     onError: (error: Error) => {
+      console.error('Logout error:', error);
       toast({
         title: "Error al cerrar sesión",
         description: error.message,

@@ -32,8 +32,13 @@ async function hashPassword(password: string) {
 async function comparePasswords(supplied: string, stored: string) {
   try {
     console.log('Comparing passwords:');
-    console.log('- Supplied password length:', supplied.length);
-    console.log('- Stored hash length:', stored.length);
+    console.log('- Supplied password:', supplied);
+    console.log('- Stored hash:', stored);
+
+    if (!stored || !supplied) {
+      console.error('Invalid password data:', { supplied: !!supplied, stored: !!stored });
+      return false;
+    }
 
     const isMatch = await bcrypt.compare(supplied, stored);
     console.log('Password comparison result:', isMatch);
@@ -46,10 +51,15 @@ async function comparePasswords(supplied: string, stored: string) {
 
 async function getUserByUsername(username: string) {
   try {
+    console.log('Looking up user:', username);
     const [user] = await db.select().from(users)
       .where(eq(users.username, username))
       .limit(1);
+
     console.log('User lookup result:', user ? 'found' : 'not found');
+    if (user) {
+      console.log('User data:', { id: user.id, username: user.username, role: user.role });
+    }
     return user;
   } catch (error) {
     console.error('Database error in getUserByUsername:', error);
@@ -100,40 +110,39 @@ export function setupAuth(app: Express) {
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
-        console.log('Attempting authentication for user:', username);
+        console.log('LocalStrategy: Attempting authentication for user:', username);
         const user = await getUserByUsername(username);
 
         if (!user) {
-          console.log('Authentication failed: User not found');
+          console.log('LocalStrategy: User not found');
           return done(null, false, { message: "Usuario o contraseña incorrectos" });
         }
 
-        console.log('Comparing passwords for user:', username);
+        console.log('LocalStrategy: User found, comparing passwords');
         const isValidPassword = await comparePasswords(password, user.password);
-        console.log('Password validation result:', isValidPassword);
 
         if (!isValidPassword) {
-          console.log('Authentication failed: Invalid password');
+          console.log('LocalStrategy: Invalid password');
           return done(null, false, { message: "Usuario o contraseña incorrectos" });
         }
 
-        console.log('Authentication successful for user:', username);
+        console.log('LocalStrategy: Authentication successful');
         return done(null, user);
       } catch (error) {
-        console.error('Authentication error:', error);
+        console.error('LocalStrategy: Authentication error:', error);
         return done(error);
       }
     })
   );
 
   passport.serializeUser((user, done) => {
-    console.log('Serializing user:', user.id);
+    console.log('serializeUser:', user.id);
     done(null, user.id);
   });
 
   passport.deserializeUser(async (id: number, done) => {
     try {
-      console.log('Deserializing user:', id);
+      console.log('deserializeUser:', id);
       const user = await db
         .select()
         .from(users)
@@ -142,30 +151,30 @@ export function setupAuth(app: Express) {
         .then(rows => rows[0]);
 
       if (!user) {
-        console.log('Deserialization failed: User not found');
+        console.log('deserializeUser: User not found');
         return done(null, false);
       }
 
-      console.log('User deserialized successfully');
+      console.log('deserializeUser: Success');
       done(null, user);
     } catch (error) {
-      console.error('Deserialization error:', error);
+      console.error('deserializeUser: Error:', error);
       done(error);
     }
   });
 
   // Auth routes
   app.post("/api/login", (req, res, next) => {
-    console.log('Login attempt received for user:', req.body.username);
+    console.log('Login request:', { username: req.body.username });
 
     passport.authenticate("local", (err: Error | null, user: Express.User | false, info: { message: string } | undefined) => {
       if (err) {
-        console.error('Authentication error:', err);
+        console.error('Login error:', err);
         return res.status(500).json({ error: "Error interno del servidor" });
       }
 
       if (!user) {
-        console.log('Authentication failed:', info?.message);
+        console.log('Login failed:', info?.message);
         return res.status(401).json({ error: info?.message || "Usuario o contraseña incorrectos" });
       }
 
@@ -175,8 +184,8 @@ export function setupAuth(app: Express) {
           return res.status(500).json({ error: "Error al iniciar sesión" });
         }
 
-        console.log('Login successful for user:', user.username);
-        return res.status(200).json({
+        console.log('Login successful:', user.username);
+        return res.json({
           id: user.id,
           username: user.username,
           role: user.role,
@@ -189,7 +198,7 @@ export function setupAuth(app: Express) {
 
   app.post("/api/logout", (req, res, next) => {
     if (req.user) {
-      console.log('Logout request received for user:', (req.user as Express.User).username);
+      console.log('Logout request:', (req.user as Express.User).username);
     }
 
     req.logout((err) => {
@@ -212,12 +221,14 @@ export function setupAuth(app: Express) {
   });
 
   app.get("/api/user", (req, res) => {
+    console.log('User request:', req.isAuthenticated() ? 'authenticated' : 'not authenticated');
+
     if (!req.isAuthenticated()) {
-      console.log('Unauthenticated user request');
       return res.sendStatus(401);
     }
 
-    console.log('User data requested for:', (req.user as Express.User).username);
-    res.json(req.user);
+    const user = req.user as Express.User;
+    console.log('Returning user data:', user.username);
+    res.json(user);
   });
 }
