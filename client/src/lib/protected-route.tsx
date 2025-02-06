@@ -31,6 +31,7 @@ export function ProtectedRoute({
   }
 
   if (!user) {
+    console.log('No user found, redirecting to /auth');
     return (
       <Route path={path}>
         <Redirect to="/auth" />
@@ -44,6 +45,16 @@ export function ProtectedRoute({
     return (
       <Route path={path}>
         <Redirect to="/check-in" />
+      </Route>
+    );
+  }
+
+  // Employee route check - redirect admins to admin dashboard
+  if (!requireAdmin && !path.startsWith('/admin') && user.role === "admin") {
+    console.log('Admin user accessing employee route, redirecting to admin dashboard');
+    return (
+      <Route path={path}>
+        <Redirect to="/admin" />
       </Route>
     );
   }
