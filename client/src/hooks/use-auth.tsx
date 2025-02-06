@@ -38,66 +38,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginCredentials) => {
-      try {
-        const res = await apiRequest("POST", "/api/login", credentials);
-        const data = await res.json();
+      const response = await apiRequest("POST", "/api/login", credentials);
+      const data = await response.json();
 
-        if (!res.ok) {
-          return { error: data.error || "Error al iniciar sesión" };
-        }
-
-        return { user: data };
-      } catch (err) {
-        return { error: "Error de conexión con el servidor" };
-      }
-    },
-    onSuccess: (result: { user?: SelectUser; error?: string }) => {
-      if (result.error) {
+      if (!response.ok) {
         toast({
           title: "Error de inicio de sesión",
-          description: result.error,
+          description: data.error || "Error al iniciar sesión",
           variant: "destructive",
         });
-        return;
+        return null;
       }
 
-      if (result.user) {
-        queryClient.setQueryData(["/api/user"], result.user);
+      return data;
+    },
+    onSuccess: (data) => {
+      if (data) {
+        queryClient.setQueryData(["/api/user"], data);
         toast({
           title: "Inicio de sesión exitoso",
-          description: `Bienvenido, ${result.user.fullName || result.user.username}`,
+          description: `Bienvenido, ${data.fullName || data.username}`,
         });
-        navigate(result.user.role === "admin" ? "/admin" : "/check-in");
+        navigate(data.role === "admin" ? "/admin" : "/check-in");
       }
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error de conexión",
-        description: "No se pudo conectar con el servidor",
-        variant: "destructive",
-      });
     },
   });
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/logout");
-      if (!res.ok) {
-        const data = await res.json();
-        return { error: data.error || "Error al cerrar sesión" };
+      const response = await apiRequest("POST", "/api/logout");
+      if (!response.ok) {
+        throw new Error("Error al cerrar sesión");
       }
-      return { success: true };
     },
-    onSuccess: (result: { error?: string; success?: boolean }) => {
-      if (result.error) {
-        toast({
-          title: "Error",
-          description: result.error,
-          variant: "destructive",
-        });
-        return;
-      }
-
+    onSuccess: () => {
       queryClient.setQueryData(["/api/user"], null);
       toast({
         title: "Sesión cerrada",
@@ -105,10 +79,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       navigate("/auth");
     },
-    onError: (error: Error) => {
+    onError: () => {
       toast({
-        title: "Error de conexión",
-        description: "No se pudo conectar con el servidor",
+        title: "Error",
+        description: "No se pudo cerrar la sesión",
         variant: "destructive",
       });
     },
