@@ -13,6 +13,9 @@ import { useAuth } from "@/hooks/use-auth";
 function Router() {
   const { user } = useAuth();
 
+  // Log de depuración para verificar el rol del usuario
+  console.log('Router - Current user:', user);
+
   if (!user) {
     return (
       <Switch>
@@ -24,7 +27,9 @@ function Router() {
     );
   }
 
+  // Si el usuario es admin, solo permitir acceso a rutas de admin
   if (user.role === "admin") {
+    console.log('Router - Admin user detected, rendering admin routes');
     return (
       <Switch>
         <Route path="/admin/dashboard" component={AdminDashboard} />
@@ -35,6 +40,8 @@ function Router() {
     );
   }
 
+  // Si el usuario es empleado, solo permitir acceso a rutas de empleado
+  console.log('Router - Employee user detected, rendering employee routes');
   return (
     <Switch>
       <Route path="/check-in" component={EmployeeCheckIn} />
