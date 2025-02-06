@@ -24,7 +24,9 @@ async function hashPassword(password: string) {
 
 async function comparePasswords(supplied: string, stored: string) {
   try {
-    return await bcrypt.compare(supplied, stored);
+    const isMatch = await bcrypt.compare(supplied, stored);
+    console.log('Password comparison result:', isMatch);
+    return isMatch;
   } catch (error) {
     console.error('Error comparing passwords:', error);
     return false;
@@ -36,6 +38,7 @@ async function getUserByUsername(username: string) {
     const result = await db.select().from(users)
       .where(eq(users.username, username))
       .limit(1);
+    console.log('Found user:', result[0] ? 'yes' : 'no');
     return result;
   } catch (error) {
     console.error('Error getting user:', error);
@@ -94,6 +97,7 @@ export function setupAuth(app: Express) {
           return done(null, false, { message: "Usuario o contraseña incorrectos" });
         }
 
+        console.log('Comparing passwords for user:', username);
         const isValidPassword = await comparePasswords(password, user.password);
         console.log('Password validation:', isValidPassword ? 'successful' : 'failed');
 
