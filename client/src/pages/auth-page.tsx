@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Fingerprint } from "lucide-react";
 import logo from "@/assets/images/logo solo.png";
 
 const loginSchema = z.object({
@@ -23,7 +22,7 @@ const loginSchema = z.object({
 });
 
 export default function AuthPage() {
-  const { loginMutation, biometricLoginMutation } = useAuth();
+  const { loginMutation } = useAuth();
   const [, setLocation] = useLocation();
 
   const loginForm = useForm<z.infer<typeof loginSchema>>({
@@ -37,10 +36,13 @@ export default function AuthPage() {
   const onLogin = async (values: z.infer<typeof loginSchema>) => {
     try {
       const user = await loginMutation.mutateAsync(values);
-      // Redirigir según el rol del usuario
+      console.log('Login successful, user:', user);
+
       if (user.role === "admin") {
+        console.log('Redirecting admin to dashboard');
         setLocation("/admin/dashboard");
       } else {
+        console.log('Redirecting employee to check-in');
         setLocation("/check-in");
       }
     } catch (error) {

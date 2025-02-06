@@ -36,12 +36,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
       const res = await apiRequest("POST", "/api/login", credentials);
-      return await res.json();
+      const data = await res.json();
+      console.log('Login response:', data);
+      if (!data.id || !data.role) {
+        throw new Error("Invalid response from server");
+      }
+      return data;
     },
     onSuccess: (user: SelectUser) => {
+      console.log('Setting user data after login:', user);
       queryClient.setQueryData(["/api/user"], user);
     },
     onError: (error: Error) => {
+      console.error('Login error:', error);
       toast({
         title: "Error de inicio de sesión",
         description: error.message,
