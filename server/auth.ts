@@ -22,7 +22,12 @@ export async function hashPassword(password: string) {
 }
 
 export async function comparePasswords(supplied: string, stored: string) {
-  return bcrypt.compare(supplied, stored);
+  console.log('Comparing passwords:');
+  console.log('Supplied password:', supplied);
+  console.log('Stored hash:', stored);
+  const result = await bcrypt.compare(supplied, stored);
+  console.log('Password comparison result:', result);
+  return result;
 }
 
 export function setupAuth(app: Express) {
@@ -60,8 +65,14 @@ export function setupAuth(app: Express) {
 
       console.log('Found user:', user); 
 
-      if (!user || !(await comparePasswords(password, user.password))) {
-        console.log('Invalid credentials for user:', username); 
+      if (!user) {
+        console.log('User not found:', username);
+        return done(null, false, { message: "Invalid credentials" });
+      }
+
+      const isValidPassword = await comparePasswords(password, user.password);
+      if (!isValidPassword) {
+        console.log('Invalid password for user:', username);
         return done(null, false, { message: "Invalid credentials" });
       }
 
@@ -103,7 +114,13 @@ export function setupAuth(app: Express) {
 
       req.login(user, (err) => {
         if (err) return next(err);
-        console.log('Sending user response:', user); 
+        console.log('Login successful, sending user response:', {
+          id: user.id,
+          username: user.username,
+          role: user.role,
+          fullName: user.fullName,
+          email: user.email
+        }); 
         res.json({
           id: user.id,
           username: user.username,
