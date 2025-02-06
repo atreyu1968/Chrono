@@ -40,6 +40,10 @@ async function comparePasswords(supplied: string, stored: string) {
       return false;
     }
 
+    console.log('Starting password comparison');
+    console.log('Supplied password:', supplied);
+    console.log('Stored hash:', stored);
+
     const isMatch = await bcrypt.compare(supplied, stored);
     console.log('Password comparison result:', isMatch);
     return isMatch;
@@ -64,7 +68,7 @@ export function setupAuth(app: Express) {
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: process.env.NODE_ENV === 'production',
+      secure: false, // Set to false for development
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000
     }
@@ -73,9 +77,9 @@ export function setupAuth(app: Express) {
   // Rutas de autenticación
   app.post("/api/login", async (req, res) => {
     try {
-      console.log('Login attempt - Body:', req.body);
-
       const { username, password } = req.body;
+      console.log('Login attempt for username:', username);
+
       if (!username || !password) {
         console.log('Missing credentials');
         return res.status(400).json({ error: 'Usuario y contraseña son requeridos' });
@@ -86,16 +90,15 @@ export function setupAuth(app: Express) {
         .where(eq(users.username, username))
         .limit(1);
 
-      console.log('Found user:', user ? 'yes' : 'no');
-
       if (!user) {
         console.log('User not found:', username);
         return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
       }
 
+      console.log('User found:', { id: user.id, username: user.username, role: user.role });
+
       // Verificar contraseña
       const validPassword = await comparePasswords(password, user.password);
-      console.log('Password valid:', validPassword);
 
       if (!validPassword) {
         console.log('Invalid password for user:', username);
@@ -123,9 +126,8 @@ export function setupAuth(app: Express) {
         });
       });
 
-      console.log('Login successful:', username);
-      console.log('Session ID:', req.session.id);
-      console.log('Session user:', req.session.user);
+      console.log('Login successful. Session ID:', req.session.id);
+      console.log('Session user data:', req.session.user);
 
       res.json(req.session.user);
     } catch (error) {
