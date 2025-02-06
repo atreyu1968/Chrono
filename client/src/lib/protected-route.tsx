@@ -31,6 +31,7 @@ export function ProtectedRoute({
     );
   }
 
+  // Add admin role check
   if (requireAdmin && user.role !== "admin") {
     return (
       <Route path={path}>

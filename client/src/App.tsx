@@ -27,7 +27,7 @@ function Router() {
 
   return (
     <Switch>
-      {/* Ruta de autenticación */}
+      {/* Authentication route */}
       <Route path="/auth">
         {() => {
           if (user) {
@@ -41,7 +41,7 @@ function Router() {
         }}
       </Route>
 
-      {/* Ruta raíz */}
+      {/* Root route */}
       <Route path="/">
         {() => {
           if (!user) {
@@ -55,102 +55,24 @@ function Router() {
         }}
       </Route>
 
-      {/* Rutas de administrador */}
-      <Route path="/admin">
-        {() => {
-          if (!user) return <Redirect to="/auth" />;
-          if (user.role !== "admin") return <Redirect to="/check-in" />;
-          return <AdminDashboard />;
-        }}
-      </Route>
-      <Route path="/admin/locations">
-        {() => {
-          if (!user) return <Redirect to="/auth" />;
-          if (user.role !== "admin") return <Redirect to="/check-in" />;
-          return <AdminLocations />;
-        }}
-      </Route>
-      <Route path="/admin/users">
-        {() => {
-          if (!user) return <Redirect to="/auth" />;
-          if (user.role !== "admin") return <Redirect to="/check-in" />;
-          return <AdminUsers />;
-        }}
-      </Route>
-      <Route path="/admin/departments">
-        {() => {
-          if (!user) return <Redirect to="/auth" />;
-          if (user.role !== "admin") return <Redirect to="/check-in" />;
-          return <AdminDepartments />;
-        }}
-      </Route>
-      <Route path="/admin/holidays">
-        {() => {
-          if (!user) return <Redirect to="/auth" />;
-          if (user.role !== "admin") return <Redirect to="/check-in" />;
-          return <AdminHolidays />;
-        }}
-      </Route>
-      <Route path="/admin/settings">
-        {() => {
-          if (!user) return <Redirect to="/auth" />;
-          if (user.role !== "admin") return <Redirect to="/check-in" />;
-          return <AdminSettings />;
-        }}
-      </Route>
-      <Route path="/admin/users/:userId/attendance">
-        {() => {
-          if (!user) return <Redirect to="/auth" />;
-          if (user.role !== "admin") return <Redirect to="/check-in" />;
-          return <UserAttendancePage />;
-        }}
-      </Route>
-      <Route path="/admin/attendance-records">
-        {() => {
-          if (!user) return <Redirect to="/auth" />;
-          if (user.role !== "admin") return <Redirect to="/check-in" />;
-          return <AttendanceRecordsPage />;
-        }}
-      </Route>
-      <Route path="/admin/messages">
-        {() => {
-          if (!user) return <Redirect to="/auth" />;
-          if (user.role !== "admin") return <Redirect to="/check-in" />;
-          return <AdminMessages />;
-        }}
-      </Route>
+      {/* Admin routes with requireAdmin prop */}
+      <ProtectedRoute path="/admin" component={AdminDashboard} requireAdmin />
+      <ProtectedRoute path="/admin/locations" component={AdminLocations} requireAdmin />
+      <ProtectedRoute path="/admin/users" component={AdminUsers} requireAdmin />
+      <ProtectedRoute path="/admin/departments" component={AdminDepartments} requireAdmin />
+      <ProtectedRoute path="/admin/holidays" component={AdminHolidays} requireAdmin />
+      <ProtectedRoute path="/admin/settings" component={AdminSettings} requireAdmin />
+      <ProtectedRoute path="/admin/users/:userId/attendance" component={UserAttendancePage} requireAdmin />
+      <ProtectedRoute path="/admin/attendance-records" component={AttendanceRecordsPage} requireAdmin />
+      <ProtectedRoute path="/admin/messages" component={AdminMessages} requireAdmin />
 
-      {/* Rutas de empleado */}
-      <Route path="/check-in">
-        {() => {
-          if (!user) return <Redirect to="/auth" />;
-          if (user.role === "admin") return <Redirect to="/admin" />;
-          return <EmployeeCheckIn />;
-        }}
-      </Route>
-      <Route path="/attendance">
-        {() => {
-          if (!user) return <Redirect to="/auth" />;
-          if (user.role === "admin") return <Redirect to="/admin" />;
-          return <EmployeeAttendance />;
-        }}
-      </Route>
-      <Route path="/settings">
-        {() => {
-          if (!user) return <Redirect to="/auth" />;
-          if (user.role === "admin") return <Redirect to="/admin" />;
-          return <EmployeeSettings />;
-        }}
-      </Route>
-      <Route path="/messages">
-        {() => {
-          if (!user) return <Redirect to="/auth" />;
-          if (user.role === "admin") return <Redirect to="/admin" />;
-          return <EmployeeMessages />;
-        }}
-      </Route>
+      {/* Employee routes */}
+      <ProtectedRoute path="/check-in" component={EmployeeCheckIn} />
+      <ProtectedRoute path="/attendance" component={EmployeeAttendance} />
+      <ProtectedRoute path="/settings" component={EmployeeSettings} />
+      <ProtectedRoute path="/messages" component={EmployeeMessages} />
 
-      {/* Ruta 404 */}
+      {/* 404 route */}
       <Route component={NotFound} />
     </Switch>
   );
