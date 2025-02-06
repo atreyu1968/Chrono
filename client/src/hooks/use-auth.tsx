@@ -2,21 +2,23 @@ import React from "react";
 import {
   useQuery,
   useMutation,
-  UseMutationResult
 } from "@tanstack/react-query";
-import type { SelectUser, InsertUser } from "@db/schema";
+import type { SelectUser } from "@db/schema";
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 
-type LoginData = Pick<InsertUser, "username" | "password">;
+type LoginCredentials = {
+  username: string;
+  password: string;
+};
 
 type AuthContextType = {
   user: SelectUser | null;
   isLoading: boolean;
   error: Error | null;
-  loginMutation: UseMutationResult<SelectUser, Error, LoginData>;
-  logoutMutation: UseMutationResult<void, Error, void>;
+  loginMutation: any;
+  logoutMutation: any;
 };
 
 export const AuthContext = React.createContext<AuthContextType | null>(null);
@@ -29,53 +31,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     data: user,
     error,
     isLoading,
-  } = useQuery<SelectUser | undefined, Error>({
+  } = useQuery<SelectUser>({
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
   });
 
-  const loginMutation = useMutation<SelectUser, Error, LoginData>({
-    mutationFn: async (credentials: LoginData) => {
-      try {
-        console.log('Attempting login with credentials:', { username: credentials.username });
-        const res = await apiRequest("POST", "/api/login", credentials);
+  const loginMutation = useMutation({
+    mutationFn: async (credentials: LoginCredentials) => {
+      const res = await apiRequest("POST", "/api/login", credentials);
+      if (!res.ok) {
         const data = await res.json();
-        console.log('Login response:', data);
-
-        if (!res.ok) {
-          const error = data.error || "Error al iniciar sesión";
-          console.error('Login failed:', error);
-          throw new Error(error);
-        }
-
-        console.log('Login successful:', data);
-        return data;
-      } catch (error) {
-        console.error('Login error:', error);
-        if (error instanceof Error) {
-          throw error;
-        }
-        throw new Error("Error al iniciar sesión");
+        throw new Error(data.error || "Error al iniciar sesión");
       }
+      return res.json();
     },
-    onSuccess: (userData: SelectUser) => {
-      console.log('Login mutation success:', userData);
-      queryClient.setQueryData(["/api/user"], userData);
-
-      // Determinar la ruta basada en el rol
-      const route = userData.role === "admin" ? "/admin" : "/check-in";
-      console.log('Redirecting to:', route);
-
-      // Mostrar mensaje de éxito
+    onSuccess: (user: SelectUser) => {
+      queryClient.setQueryData(["/api/user"], user);
       toast({
         title: "Inicio de sesión exitoso",
-        description: `Bienvenido, ${userData.fullName || userData.username}`,
+        description: `Bienvenido, ${user.fullName || user.username}`,
       });
-
-      navigate(route);
+      navigate(user.role === "admin" ? "/admin" : "/check-in");
     },
     onError: (error: Error) => {
-      console.error('Login mutation error:', error);
       toast({
         title: "Error de inicio de sesión",
         description: error.message,
@@ -84,12 +62,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     },
   });
 
-  const logoutMutation = useMutation<void, Error, void>({
+  const logoutMutation = useMutation({
     mutationFn: async () => {
       await apiRequest("POST", "/api/logout");
     },
     onSuccess: () => {
-      console.log('Logout successful');
       queryClient.setQueryData(["/api/user"], null);
       toast({
         title: "Sesión cerrada",
@@ -98,7 +75,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       navigate("/auth");
     },
     onError: (error: Error) => {
-      console.error('Logout error:', error);
       toast({
         title: "Error al cerrar sesión",
         description: error.message,
