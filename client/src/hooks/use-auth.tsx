@@ -38,25 +38,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginCredentials) => {
-      const res = await apiRequest("POST", "/api/login", credentials);
-      if (!res.ok) {
+      try {
+        const res = await apiRequest("POST", "/api/login", credentials);
         const data = await res.json();
-        throw new Error(data.error || "Error al iniciar sesión");
+
+        if (!res.ok) {
+          return { error: data.error || "Error al iniciar sesión" };
+        }
+
+        return { user: data };
+      } catch (err) {
+        return { error: "Error de conexión con el servidor" };
       }
-      return res.json();
     },
-    onSuccess: (user: SelectUser) => {
-      queryClient.setQueryData(["/api/user"], user);
-      toast({
-        title: "Inicio de sesión exitoso",
-        description: `Bienvenido, ${user.fullName || user.username}`,
-      });
-      navigate(user.role === "admin" ? "/admin" : "/check-in");
+    onSuccess: (result: { user?: SelectUser; error?: string }) => {
+      if (result.error) {
+        toast({
+          title: "Error de inicio de sesión",
+          description: result.error,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (result.user) {
+        queryClient.setQueryData(["/api/user"], result.user);
+        toast({
+          title: "Inicio de sesión exitoso",
+          description: `Bienvenido, ${result.user.fullName || result.user.username}`,
+        });
+        navigate(result.user.role === "admin" ? "/admin" : "/check-in");
+      }
     },
     onError: (error: Error) => {
       toast({
-        title: "Error de inicio de sesión",
-        description: error.message,
+        title: "Error de conexión",
+        description: "No se pudo conectar con el servidor",
         variant: "destructive",
       });
     },
@@ -64,9 +81,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest("POST", "/api/logout");
+      const res = await apiRequest("POST", "/api/logout");
+      if (!res.ok) {
+        const data = await res.json();
+        return { error: data.error || "Error al cerrar sesión" };
+      }
+      return { success: true };
     },
-    onSuccess: () => {
+    onSuccess: (result: { error?: string; success?: boolean }) => {
+      if (result.error) {
+        toast({
+          title: "Error",
+          description: result.error,
+          variant: "destructive",
+        });
+        return;
+      }
+
       queryClient.setQueryData(["/api/user"], null);
       toast({
         title: "Sesión cerrada",
@@ -76,8 +107,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     },
     onError: (error: Error) => {
       toast({
-        title: "Error al cerrar sesión",
-        description: error.message,
+        title: "Error de conexión",
+        description: "No se pudo conectar con el servidor",
         variant: "destructive",
       });
     },
