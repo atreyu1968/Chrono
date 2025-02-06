@@ -6,9 +6,16 @@ import { users, type SelectUser } from "@db/schema";
 import { db, pool } from "@db";
 import { eq } from "drizzle-orm";
 
-declare global {
-  namespace Express {
-    interface User extends SelectUser {}
+// Extend express-session types
+declare module 'express-session' {
+  interface SessionData {
+    user: {
+      id: number;
+      username: string;
+      role: string;
+      fullName: string | null;
+      email: string | null;
+    }
   }
 }
 
@@ -28,35 +35,29 @@ async function hashPassword(password: string) {
 
 async function comparePasswords(supplied: string, stored: string) {
   try {
-    // Logging para debug
-    console.log('Comparing passwords:');
-    console.log('- Supplied password length:', supplied?.length);
-    console.log('- Stored hash length:', stored?.length);
-
-    // Validación de entrada
-    if (!stored || !supplied) {
-      console.error('Invalid password data:', { supplied: !!supplied, stored: !!stored });
+    if (!supplied || !stored) {
+      console.error('Missing password data');
       return false;
     }
 
-    // Comparación
     const isMatch = await bcrypt.compare(supplied, stored);
     console.log('Password comparison result:', isMatch);
     return isMatch;
   } catch (error) {
-    console.error('Error comparing passwords:', error);
+    console.error('Password comparison error:', error);
     return false;
   }
 }
 
 export function setupAuth(app: Express) {
-  // Configuración de sesión
-  const store = new PostgresSessionStore({ 
+  // Configuración de la sesión con PostgreSQL
+  const store = new PostgresSessionStore({
     pool,
     createTableIfMissing: true,
     tableName: 'session'
   });
 
+  // Middleware de sesión
   app.use(session({
     store,
     secret: process.env.REPL_ID || 'desarrollo-secreto',
@@ -65,37 +66,43 @@ export function setupAuth(app: Express) {
     cookie: {
       secure: process.env.NODE_ENV === 'production',
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000 // 24 horas
+      maxAge: 24 * 60 * 60 * 1000
     }
   }));
 
   // Rutas de autenticación
   app.post("/api/login", async (req, res) => {
     try {
+      console.log('Login attempt - Body:', req.body);
+
       const { username, password } = req.body;
-      console.log('Login attempt:', username);
-      console.log('Request body:', req.body);
+      if (!username || !password) {
+        console.log('Missing credentials');
+        return res.status(400).json({ error: 'Usuario y contraseña son requeridos' });
+      }
 
       // Buscar usuario
       const [user] = await db.select().from(users)
         .where(eq(users.username, username))
         .limit(1);
 
+      console.log('Found user:', user ? 'yes' : 'no');
+
       if (!user) {
         console.log('User not found:', username);
         return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
       }
 
-      console.log('User found:', { id: user.id, username: user.username });
-
       // Verificar contraseña
       const validPassword = await comparePasswords(password, user.password);
+      console.log('Password valid:', validPassword);
+
       if (!validPassword) {
         console.log('Invalid password for user:', username);
         return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
       }
 
-      // Establecer sesión
+      // Configurar sesión
       req.session.user = {
         id: user.id,
         username: user.username,
@@ -104,8 +111,21 @@ export function setupAuth(app: Express) {
         email: user.email
       };
 
+      // Guardar sesión explícitamente
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) {
+            console.error('Session save error:', err);
+            reject(err);
+          }
+          console.log('Session saved successfully');
+          resolve();
+        });
+      });
+
       console.log('Login successful:', username);
-      console.log('Session:', req.session);
+      console.log('Session ID:', req.session.id);
+      console.log('Session user:', req.session.user);
 
       res.json(req.session.user);
     } catch (error) {
@@ -115,19 +135,28 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/logout", (req, res) => {
-    req.session.destroy(err => {
+    console.log('Logout attempt - Session:', req.session.id);
+
+    req.session.destroy((err) => {
       if (err) {
         console.error('Logout error:', err);
         return res.status(500).json({ error: 'Error al cerrar sesión' });
       }
+      console.log('Logout successful');
       res.sendStatus(200);
     });
   });
 
   app.get("/api/user", (req, res) => {
+    console.log('User session check - Session ID:', req.session.id);
+    console.log('Session data:', req.session);
+
     if (!req.session.user) {
+      console.log('No user session found');
       return res.sendStatus(401);
     }
+
+    console.log('User session found:', req.session.user);
     res.json(req.session.user);
   });
 }
