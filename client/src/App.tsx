@@ -6,6 +6,7 @@ import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import AuthPage from "@/pages/auth-page";
 import EmployeeCheckIn from "@/pages/employee/check-in";
+import EmployeeAttendance from "@/pages/employee/attendance";
 import AdminDashboard from "@/pages/admin/dashboard";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -27,7 +28,6 @@ function Router() {
     return (
       <Switch>
         <Route path="/admin/dashboard" component={AdminDashboard} />
-        <Route path="/admin" component={AdminDashboard} />
         <Route>
           <AdminDashboard />
         </Route>
@@ -38,6 +38,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/check-in" component={EmployeeCheckIn} />
+      <Route path="/attendance" component={EmployeeAttendance} />
       <Route>
         <EmployeeCheckIn />
       </Route>
