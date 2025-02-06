@@ -31,6 +31,10 @@ async function hashPassword(password: string) {
 
 async function comparePasswords(supplied: string, stored: string) {
   try {
+    console.log('Comparing passwords:');
+    console.log('- Supplied password length:', supplied.length);
+    console.log('- Stored hash length:', stored.length);
+
     const isMatch = await bcrypt.compare(supplied, stored);
     console.log('Password comparison result:', isMatch);
     return isMatch;
