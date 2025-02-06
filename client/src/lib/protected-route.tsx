@@ -48,15 +48,5 @@ export function ProtectedRoute({
     );
   }
 
-  // Employee route check - redirect admins to admin dashboard
-  if (!requireAdmin && user.role === "admin") {
-    console.log('Redirecting admin to admin dashboard');
-    return (
-      <Route path={path}>
-        <Redirect to="/admin" />
-      </Route>
-    );
-  }
-
   return <Route path={path} component={Component} />;
 }
