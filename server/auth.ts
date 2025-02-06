@@ -45,7 +45,7 @@ export function setupAuth(app: Express) {
     resave: false,
     saveUninitialized: false,
     store,
-    name: 'sid',
+    name: 'sid', // Custom cookie name
     cookie: {
       secure: app.get("env") === "production",
       sameSite: "lax",
@@ -71,30 +71,33 @@ export function setupAuth(app: Express) {
       try {
         const [user] = await getUserByUsername(username);
         if (!user) {
+          console.log('Login failed: User not found -', username);
           return done(null, false, { message: "Credenciales inválidas" });
         }
 
         const isValidPassword = await comparePasswords(password, user.password);
         if (!isValidPassword) {
+          console.log('Login failed: Invalid password -', username);
           return done(null, false, { message: "Credenciales inválidas" });
         }
 
-        console.log('Usuario autenticado correctamente:', { id: user.id, username: user.username, role: user.role });
+        console.log('User authenticated successfully:', { id: user.id, username: user.username });
         return done(null, user);
       } catch (error) {
-        console.error('Error en autenticación:', error);
+        console.error('Authentication error:', error);
         return done(error);
       }
     })
   );
 
   passport.serializeUser((user, done) => {
-    console.log('Serializando usuario:', user.id);
+    console.log('Serializing user:', user.id);
     done(null, user.id);
   });
 
   passport.deserializeUser(async (id: number, done) => {
     try {
+      console.log('Deserializing user:', id);
       const [user] = await db
         .select()
         .from(users)
@@ -102,33 +105,35 @@ export function setupAuth(app: Express) {
         .limit(1);
 
       if (!user) {
-        console.log('Usuario no encontrado en deserialización:', id);
+        console.log('User not found in deserialization:', id);
         return done(null, false);
       }
-      console.log('Usuario deserializado:', { id: user.id, username: user.username, role: user.role });
+
+      console.log('User deserialized successfully:', { id: user.id, username: user.username });
       done(null, user);
     } catch (error) {
-      console.error('Error en deserialización:', error);
+      console.error('Deserialization error:', error);
       done(error);
     }
   });
 
+  // Authentication routes
   app.post("/api/login", (req, res, next) => {
     passport.authenticate("local", (err: Error | null, user: Express.User | false, info: { message: string } | undefined) => {
       if (err) {
-        console.error('Error en login:', err);
+        console.error('Login error:', err);
         return res.status(500).json({ error: err.message });
       }
       if (!user) {
-        console.log('Intento de login fallido:', info?.message);
+        console.log('Login attempt failed:', info?.message);
         return res.status(401).json({ error: info?.message || "Credenciales inválidas" });
       }
       req.login(user, (err) => {
         if (err) {
-          console.error('Error en login session:', err);
+          console.error('Login session error:', err);
           return res.status(500).json({ error: err.message });
         }
-        console.log('Usuario autenticado:', { id: user.id, username: user.username, role: user.role });
+        console.log('User logged in:', { id: user.id, username: user.username });
         res.json(user);
       });
     })(req, res, next);
@@ -136,22 +141,22 @@ export function setupAuth(app: Express) {
 
   app.post("/api/logout", (req, res, next) => {
     const userId = req.user?.id;
-    console.log('Logout solicitado para usuario:', userId);
+    console.log('Logout requested for user:', userId);
     req.logout((err) => {
       if (err) return next(err);
       req.session.destroy((err) => {
         if (err) return next(err);
         res.clearCookie('sid');
-        console.log('Logout completado para usuario:', userId);
+        console.log('Logout completed for user:', userId);
         res.sendStatus(200);
       });
     });
   });
 
   app.get("/api/user", (req, res) => {
-    console.log('Sesión actual:', req.user);
+    console.log('Current session:', req.user);
     if (!req.isAuthenticated()) {
-      console.log('Usuario no autenticado en /api/user');
+      console.log('User not authenticated in /api/user');
       return res.sendStatus(401);
     }
     res.json(req.user);
