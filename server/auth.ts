@@ -17,12 +17,12 @@ declare global {
 
 const PostgresSessionStore = connectPg(session);
 
-async function hashPassword(password: string) {
+export async function hashPassword(password: string) {
   const salt = await bcrypt.genSalt(10);
   return bcrypt.hash(password, salt);
 }
 
-async function comparePasswords(supplied: string, stored: string) {
+export async function comparePasswords(supplied: string, stored: string) {
   return bcrypt.compare(supplied, stored);
 }
 
@@ -163,12 +163,12 @@ export function setupAuth(app: Express) {
   });
 
   app.get("/api/user", (req, res) => {
-    console.log('Current session:', req.user);
+    console.log('Current session user:', req.user);
     if (!req.isAuthenticated()) {
       console.log('User not authenticated in /api/user');
       return res.sendStatus(401);
     }
-    // Include role in the response
+
     const user = req.user;
     const userResponse = {
       id: user.id,

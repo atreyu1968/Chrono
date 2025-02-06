@@ -9,11 +9,41 @@ import fileUpload from "express-fileupload";
 import path from "path";
 import { addMinutes, parseISO, format } from "date-fns";
 import { es } from 'date-fns/locale';
+import { hashPassword } from "./auth";
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
   const httpServer = createServer(app);
   setupWebSocket(httpServer);
+
+  // Setup initial admin user if none exists
+  app.post("/api/init", async (req, res) => {
+    try {
+      const [existingAdmin] = await db
+        .select()
+        .from(users)
+        .where(eq(users.role, "admin"))
+        .limit(1);
+
+      if (existingAdmin) {
+        return res.status(400).json({ message: "Admin user already exists" });
+      }
+
+      const adminUser = {
+        username: "admin",
+        password: await hashPassword("admin123"),
+        role: "admin",
+        fullName: "Administrator",
+        email: "admin@chrono.com",
+      };
+
+      const [newAdmin] = await db.insert(users).values(adminUser).returning();
+      res.status(201).json({ message: "Admin user created successfully" });
+    } catch (error) {
+      console.error("Error creating admin user:", error);
+      res.status(500).json({ message: "Error creating admin user" });
+    }
+  });
 
   // Setup file upload middleware
   app.use(fileUpload({
@@ -398,7 +428,7 @@ export function registerRoutes(app: Express): Server {
       });
     }
   });
-  
+
   app.get("/api/admin/user/:userId/schedules", async (req, res) => {
     if (req.user?.role !== "admin") return res.sendStatus(403);
 
@@ -532,7 +562,7 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-       // 4. Verificar si ya existe un registro para hoy si la configuración está activa
+      // 4. Verificar si ya existe un registro para hoy si la configuración está activa
       const settings = await db.query.userSettings.findFirst({
         where: eq(userSettings.userId, req.user.id)
       });
@@ -550,7 +580,7 @@ export function registerRoutes(app: Express): Server {
 
         if (existingRecord) {
           console.log("[Check-in] User already has a record for today");
-          return res.status(400).json({ 
+          return res.status(400).json({
             message: "Ya tienes un registro de asistencia para hoy. Solo se permite un registro por día según la configuración actual.",
             type: "single_check_in_limit"
           });
@@ -629,7 +659,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Rutas de asistencia para usuarios específicos (admin y el propio usuario)
-    app.get("/api/attendance/user", async (req, res) => {
+  app.get("/api/attendance/user", async (req, res) => {
     if (!req.user) return res.sendStatus(401);
     const { userId } = req.query;
 
@@ -648,7 +678,7 @@ export function registerRoutes(app: Express): Server {
         console.log("[Backend] Invalid userId:", userId);
         return res.status(400).json({ message: "ID de usuario inválido" });
       }
-      
+
       // Verificar permisos - solo admin o el propio usuario pueden ver los registros
       if (req.user.role !== "admin" && userIdNumber !== req.user.id) {
         console.log("[Backend] Permission denied:", {
@@ -688,7 +718,7 @@ export function registerRoutes(app: Express): Server {
       res.status(500).json({ message: "Error al obtener el historial de asistencia" });
     }
   });
-  
+
   // Ruta para obtener todos los registros de asistencia (admin)
   app.get("/api/attendance", async (req, res) => {
     if (req.user?.role !== "admin") return res.sendStatus(403);
@@ -787,7 +817,7 @@ export function registerRoutes(app: Express): Server {
       });
     }
   });
-  
+
   // También actualizar la ruta de historial para incluir más detalles
   app.get("/api/attendance/history", async (req, res) => {
     if (!req.user) return res.sendStatus(401);
@@ -864,7 +894,8 @@ export function registerRoutes(app: Express): Server {
               name: holiday.name,
               type: holiday.type,
               date: holiday.date
-            } : null,            checkInFormatted: format(new Date(record.checkInTime), 'HH:mm'),
+            } : null,
+            checkInFormatted: format(new Date(record.checkInTime), 'HH:mm'),
             checkOutFormatted: record.checkOutTime
               ? format(new Date(record.checkOutTime), 'HH:mm')
               : null
@@ -877,17 +908,16 @@ export function registerRoutes(app: Express): Server {
       console.error("Error fetching attendance history:", error);
       res.status(500).json({ message: "Error al obtener el historial de asistencia" });
     }
-  });
 
   // Attendance stats (admin only)
-app.get("/api/attendance/stats", async (req, res) => {
+  app.get("/api/attendance/stats", async (req, res) => {
     if (req.user?.role !== "admin") return res.sendStatus(403);
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     const todayAttendance = await db.select()
-    .from(attendance)
+      .from(attendance)
       .where(gte(attendance.checkInTime, today));
 
     // Get last 7 days trend
@@ -927,14 +957,12 @@ app.get("/api/attendance/stats", async (req, res) => {
   // Messaging routes
   app.post("/api/messages", async (req, res) => {
     if (!req.user) return res.sendStatus(401);
-    const message = await db.insert(messages).values({      ...req.body,      fromUserId: req.user.id,
-      sentAt: new Date()
-    }).returning();
+    const message = await db.insert(messages).values({ ...req.body, fromUserId: req.user.id, sentAt: new Date() }).returning();
     res.json(message[0]);
   });
 
   app.get("/api/messages", async (req, res) => {
-if (!req.user) return res.sendStatus(401);
+    if (!req.user) return res.sendStatus(401);
 
     const userMessages = await db
       .select({
@@ -957,7 +985,7 @@ if (!req.user) return res.sendStatus(401);
           eq(messages.fromUserId, req.user.id)
         )
       )
-      .leftJoin(users, eq(messages.fromUserId,users.id))
+      .leftJoin(users, eq(messages.fromUserId, users.id))
       .orderBy(messages.sentAt);
 
     res.json(userMessages);
@@ -1102,8 +1130,8 @@ if (!req.user) return res.sendStatus(401);
         type: holidays.type,
         createdAt: holidays.createdAt,
       })
-      .from(holidays)
-      .orderBy(holidays.date);
+        .from(holidays)
+        .orderBy(holidays.date);
 
       res.json(allHolidays);
     } catch (error) {
@@ -1152,19 +1180,19 @@ if (!req.user) return res.sendStatus(401);
     if (!req.user) return res.sendStatus(401);
 
     try {
-      const { 
-        userId, 
-        checkInTime, 
-        checkOutTime, 
-        locationId, 
+      const {
+        userId,
+        checkInTime,
+        checkOutTime,
+        locationId,
         incidenceType,
-        incidenceDescription 
+        incidenceDescription
       } = req.body;
 
       // Si es un usuario normal, solo puede registrar sus propias asistencias
       if (req.user.role !== "admin" && userId !== req.user.id) {
-        return res.status(403).json({ 
-          message: "Solo puedes registrar tus propias asistencias" 
+        return res.status(403).json({
+          message: "Solo puedes registrar tus propias asistencias"
         });
       }
 
@@ -1249,7 +1277,7 @@ if (!req.user) return res.sendStatus(401);
       console.log("[Manual Check] Successfully created manual attendance record:", record.id);
 
       // Preparar mensaje de respuesta según el rol
-      const message = req.user.role === "admin" 
+      const message = req.user.role === "admin"
         ? "Registro manual creado correctamente"
         : "Registro manual creado correctamente. Pendiente de aprobación por un administrador";
 
@@ -1294,8 +1322,8 @@ if (!req.user) return res.sendStatus(401);
 
       res.json({
         record,
-        message: approved 
-          ? "Incidencia aprobada correctamente" 
+        message: approved
+          ? "Incidencia aprobada correctamente"
           : "Incidencia rechazada"
       });
 
@@ -1307,7 +1335,7 @@ if (!req.user) return res.sendStatus(401);
       });
     }
   });
-  
+
   return httpServer;
 }
 
