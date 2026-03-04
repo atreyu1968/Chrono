@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import logo from "@/assets/images/logo solo.png";
+import asdLogo from "@/assets/images/asd-logo.png";
 
 const loginSchema = z.object({
   username: z.string().min(3, "El usuario debe tener al menos 3 caracteres"),
@@ -94,6 +95,10 @@ export default function AuthPage() {
             </Form>
           </CardContent>
         </Card>
+        <footer className="mt-6 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+          <img src={asdLogo} alt="ASD" className="h-4" />
+          <span>Desarrollado por Atreyu Servicios Digitales</span>
+        </footer>
       </div>
     </div>
   );
