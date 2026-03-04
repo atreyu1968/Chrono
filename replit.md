@@ -87,3 +87,20 @@ db/
 ## Running
 - `npm run dev` starts Express backend + Vite frontend on port 5000
 - `npm run db:push` pushes schema changes to database
+
+## Production Deployment (Ubuntu Server)
+- `install.sh` - Unattended auto-installer for Ubuntu 22.04/24.04
+- Supports both fresh install and updates (preserves credentials)
+- Uses systemd (not PM2) for process management
+- Config stored in `/etc/chrono/env` (outside repo)
+- Cookie security controlled via `SECURE_COOKIES` env var
+- Optional Cloudflare Tunnel support for HTTPS
+- DB driver auto-detects Neon (dev) vs standard PostgreSQL (prod) via `db/index.ts`
+
+## Environment Variables (Production)
+- `DATABASE_URL` - PostgreSQL connection string
+- `SESSION_SECRET` - Session encryption key
+- `REPL_ID` - Used as session secret fallback
+- `PORT` - Server port (default 5000)
+- `NODE_ENV` - "production" in prod
+- `SECURE_COOKIES` - "true"/"false" (false if no HTTPS)

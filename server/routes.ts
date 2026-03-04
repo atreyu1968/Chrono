@@ -15,7 +15,7 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/users", async (req, res) => {
     if (req.user?.role !== "admin") return res.sendStatus(403);
     const allUsers = await db.select().from(users);
-    res.json(allUsers.map(u => { const { password: _, ...rest } = u; return rest; }));
+    res.json(allUsers.map((u: any) => { const { password: _, ...rest } = u; return rest; }));
   });
 
   app.get("/api/users/recent", async (req, res) => {
@@ -25,7 +25,7 @@ export function registerRoutes(app: Express): Server {
       .from(users)
       .orderBy(desc(users.id))
       .limit(5);
-    res.json(recentUsers.map(u => { const { password: _, ...rest } = u; return rest; }));
+    res.json(recentUsers.map((u: any) => { const { password: _, ...rest } = u; return rest; }));
   });
 
   app.post("/api/users", async (req, res) => {
@@ -343,7 +343,7 @@ export function registerRoutes(app: Express): Server {
       .from(attendance)
       .where(sql`DATE(${attendance.checkInTime}) = CURRENT_DATE`);
 
-    const onTimeCount = todayAttendance.filter(record => {
+    const onTimeCount = todayAttendance.filter((record: any) => {
       const checkInHour = new Date(record.checkInTime).getHours();
       return checkInHour <= 9;
     }).length;
