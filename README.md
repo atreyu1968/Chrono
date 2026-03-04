@@ -62,21 +62,42 @@ Sistema de gestión de asistencia basado en geolocalización (geofencing) con co
 
 ## Instalación
 
-### Instalación Automática (Recomendada)
+### Paso 1: Preparar el servidor
 
-El script `install.sh` realiza toda la instalación de forma automática y desatendida:
+En un servidor Ubuntu recién instalado, primero actualiza el sistema e instala las herramientas necesarias:
 
 ```bash
-sudo bash install.sh
+# Actualizar la lista de paquetes y el sistema
+sudo apt update && sudo apt upgrade -y
+
+# Instalar herramientas básicas necesarias para descargar desde GitHub
+sudo apt install -y curl git wget ca-certificates gnupg
 ```
 
-O directamente desde el repositorio de GitHub:
+> Esto solo es necesario hacerlo una vez. El instalador también instala estas herramientas, pero si el servidor no tiene `curl` ni `git` preinstalados, necesitas instalarlos para poder descargar el script desde GitHub.
+
+### Paso 2: Descargar y ejecutar el instalador
+
+**Opción A** - Descargar y ejecutar en un solo comando:
 
 ```bash
 wget -qO- https://raw.githubusercontent.com/USUARIO/REPO/main/install.sh | sudo bash
 ```
 
-> **Nota:** Antes de usar el script, edita la variable `GITHUB_REPO` en la línea 23 del archivo `install.sh` con la URL de tu repositorio.
+**Opcion B** - Clonar el repositorio y ejecutar localmente:
+
+```bash
+git clone https://github.com/USUARIO/REPO.git /tmp/chrono
+sudo bash /tmp/chrono/install.sh
+```
+
+**Opcion C** - Si ya tienes el archivo `install.sh` en el servidor:
+
+```bash
+sudo bash install.sh
+```
+
+> **Nota:** Antes de usar el script, edita la variable `GITHUB_REPO` en la línea 23 del archivo `install.sh` con la URL real de tu repositorio de GitHub.
 
 #### Lo que hace el instalador:
 
