@@ -56,7 +56,7 @@ db/
 ## Database Schema
 - **users**: id, username, password, role, fullName, email, phone, avatar, employeeType, department, medusaUser, emergencyContact, emergencyPhone
 - **locations**: id, name, address, latitude, longitude, radius
-- **attendance**: id, userId, locationId, checkInTime, checkOutTime, isManualEntry
+- **attendance**: id, userId, locationId, checkInTime, checkOutTime, isManualEntry, checkInLatitude, checkInLongitude
 - **userSettings**: id, userId, theme, appearance, animationsEnabled, animationSpeed, sidebarCollapsed, autoCheckIn, autoCheckOut, singleCheckInPerDay
 - **departments**: id, name
 - **messages**: id, fromUserId, toUserId, content, sentAt, read
@@ -83,6 +83,26 @@ db/
 
 ### Messages
 - GET /api/messages, POST /api/messages, PATCH /api/messages/:id/read
+
+## PWA (Progressive Web App)
+- Manifest: `client/public/manifest.webmanifest` (start_url: /check-in, standalone display)
+- Service Worker: `client/public/sw.js` (network-first for API, cache with offline fallback for static)
+- Icons: SVG icons at `client/public/icon-192.svg` and `icon-512.svg`
+- PWA meta tags in `client/index.html` (theme-color, apple-mobile-web-app, manifest link)
+- Service worker registered in `client/src/main.tsx`
+- PWA scope covers the employee check-in area (/check-in as start URL)
+- Skips Vite HMR requests in dev mode
+
+## Geolocation
+- High-accuracy GPS: `enableHighAccuracy: true`, `timeout: 15000`, `maximumAge: 0`
+- Auto-requests GPS on page load
+- Shows real-time distance to selected location (Haversine formula on frontend)
+- Visual indicator: green/red for within/outside radius
+- GPS accuracy warning when precision > 50m
+- Specific error messages for PERMISSION_DENIED, POSITION_UNAVAILABLE, TIMEOUT
+- Retry button on GPS failure
+- Check-in coordinates stored in attendance record (checkInLatitude, checkInLongitude)
+- Server-side validation: Haversine distance vs location radius
 
 ## Running
 - `npm run dev` starts Express backend + Vite frontend on port 5000

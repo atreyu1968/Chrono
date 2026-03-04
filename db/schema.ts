@@ -40,6 +40,8 @@ export const attendance = pgTable("attendance", {
   checkInTime: timestamp("check_in_time").notNull(),
   checkOutTime: timestamp("check_out_time"),
   isManualEntry: boolean("is_manual_entry").default(false),
+  checkInLatitude: real("check_in_latitude"),
+  checkInLongitude: real("check_in_longitude"),
 });
 
 export const userSettings = pgTable("user_settings", {

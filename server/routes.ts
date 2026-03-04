@@ -273,6 +273,8 @@ export function registerRoutes(app: Express): Server {
           userId: req.user.id,
           locationId: locationId || null,
           checkInTime: new Date(),
+          checkInLatitude: latitude !== undefined ? latitude : null,
+          checkInLongitude: longitude !== undefined ? longitude : null,
         })
         .returning();
 

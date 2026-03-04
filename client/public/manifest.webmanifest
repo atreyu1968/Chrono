@@ -1,0 +1,34 @@
+{
+  "name": "Chrono - Sistema de Asistencia",
+  "short_name": "Chrono",
+  "description": "Sistema de Control de Asistencia con Geolocalización",
+  "start_url": "/check-in",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0F203E",
+  "theme_color": "#0F203E",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [],
+  "prefer_related_applications": false
+}
