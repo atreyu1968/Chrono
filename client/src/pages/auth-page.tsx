@@ -35,20 +35,14 @@ export default function AuthPage() {
 
   const onLogin = async (values: z.infer<typeof loginSchema>) => {
     try {
-      console.log('Attempting login with values:', { username: values.username });
       const user = await loginMutation.mutateAsync(values);
-      console.log('Login response:', user);
 
       if (user.role === "admin") {
-        console.log('Redirecting admin to dashboard');
         setLocation("/admin/dashboard");
       } else {
-        console.log('Redirecting employee to check-in');
         setLocation("/check-in");
       }
     } catch (error) {
-      console.error("Error during login:", error);
-      // Reset the form if login fails
       loginForm.reset();
     }
   };

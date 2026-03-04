@@ -148,10 +148,10 @@ export default function UserAttendancePage() {
                               <span className="text-sm">Estado</span>
                             </div>
                             <Badge
-                              variant={record.status === "present" ? "default" : "destructive"}
+                              variant={new Date(record.checkInTime).getHours() < 9 ? "default" : "destructive"}
                               className="capitalize"
                             >
-                              {record.status === "present" ? "Puntual" : "Tarde"}
+                              {new Date(record.checkInTime).getHours() < 9 ? "Puntual" : "Tarde"}
                             </Badge>
                           </div>
                         </div>

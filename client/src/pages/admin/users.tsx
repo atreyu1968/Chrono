@@ -38,7 +38,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { SelectUser } from "@db/schema";
+import type { SelectUser, SelectDepartment } from "@db/schema";
 import { UserPlus, Edit2, Mail, BarChart2 } from "lucide-react";
 import { Link } from "wouter";
 import {
@@ -142,7 +142,7 @@ export default function UsersPage() {
     queryKey: ["/api/users"],
   });
 
-  const { data: departments } = useQuery({
+  const { data: departments } = useQuery<SelectDepartment[]>({
     queryKey: ["/api/departments"],
   });
 
@@ -163,9 +163,9 @@ export default function UsersPage() {
       email: editingUser.email,
       phone: editingUser.phone || '',
       department: editingUser.department || '',
-      employeeType: editingUser.employeeType,
+      employeeType: (editingUser.employeeType as "profesor" | "pas") || "profesor",
       medusaUser: editingUser.medusaUser || '',
-      role: editingUser.role,
+      role: editingUser.role as "admin" | "employee",
       avatar: editingUser.avatar || '',
       emergencyContact: editingUser.emergencyContact || '',
       emergencyPhone: editingUser.emergencyPhone || '',
@@ -359,7 +359,7 @@ export default function UsersPage() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {departments?.map((dept: any) => (
+                            {departments?.map((dept) => (
                               <SelectItem key={dept.id} value={dept.name}>
                                 {dept.name}
                               </SelectItem>
@@ -555,9 +555,9 @@ export default function UsersPage() {
                             email: user.email,
                             phone: user.phone || '',
                             department: user.department || '',
-                            employeeType: user.employeeType,
+                            employeeType: (user.employeeType as "profesor" | "pas") || "profesor",
                             medusaUser: user.medusaUser || '',
-                            role: user.role,
+                            role: user.role as "admin" | "employee",
                             avatar: user.avatar || '',
                             emergencyContact: user.emergencyContact || '',
                             emergencyPhone: user.emergencyPhone || '',

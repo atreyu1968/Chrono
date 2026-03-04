@@ -46,7 +46,7 @@ export default function DepartmentsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState<any>(null);
 
-  const { data: departments, isLoading } = useQuery({
+  const { data: departments, isLoading } = useQuery<any[]>({
     queryKey: ["/api/departments"],
   });
 

@@ -38,14 +38,10 @@ export default function AttendancePage() {
     to: endOfMonth(today)
   });
 
+  const startDate = date?.from ? format(date.from, "yyyy-MM-dd") : "";
+  const endDate = date?.to ? format(date.to, "yyyy-MM-dd") : "";
   const { data: attendance } = useQuery<(SelectAttendance & { location: SelectLocation })[]>({
-    queryKey: [
-      "/api/attendance/history",
-      {
-        startDate: date?.from ? format(date.from, "yyyy-MM-dd") : undefined,
-        endDate: date?.to ? format(date.to, "yyyy-MM-dd") : undefined,
-      },
-    ],
+    queryKey: [`/api/attendance/history?startDate=${startDate}&endDate=${endDate}`],
     enabled: !!date?.from && !!date?.to,
   });
 
@@ -149,7 +145,7 @@ export default function AttendancePage() {
                               </div>
                             </TableCell>
                             <TableCell>
-                              {record.status === "present" ? (
+                              {new Date(record.checkInTime).getHours() < 9 ? (
                                 <Badge className="bg-green-500 hover:bg-green-600">
                                   <CheckCircle2 className="mr-1 h-3 w-3" />
                                   Puntual

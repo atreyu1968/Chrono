@@ -7,7 +7,6 @@ import {
 import type { SelectUser, InsertUser } from "@db/schema";
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { startAuthentication } from "@simplewebauthn/browser";
 
 type AuthContextType = {
   user: SelectUser | null;
@@ -16,7 +15,6 @@ type AuthContextType = {
   loginMutation: UseMutationResult<SelectUser, Error, LoginData>;
   logoutMutation: UseMutationResult<void, Error, void>;
   registerMutation: UseMutationResult<SelectUser, Error, InsertUser>;
-  biometricLoginMutation: UseMutationResult<SelectUser, Error, void>;
 };
 
 type LoginData = Pick<InsertUser, "username" | "password">;
@@ -37,18 +35,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     mutationFn: async (credentials: LoginData) => {
       const res = await apiRequest("POST", "/api/login", credentials);
       const data = await res.json();
-      console.log('Login response:', data);
       if (!data.id || !data.role) {
         throw new Error("Invalid response from server");
       }
       return data;
     },
     onSuccess: (user: SelectUser) => {
-      console.log('Setting user data after login:', user);
       queryClient.setQueryData(["/api/user"], user);
     },
     onError: (error: Error) => {
-      console.error('Login error:', error);
       toast({
         title: "Error de inicio de sesión",
         description: error.message,
@@ -90,35 +85,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     },
   });
 
-  const biometricLoginMutation = useMutation({
-    mutationFn: async () => {
-      // 1. Get challenge from server
-      const optionsRes = await apiRequest("GET", "/api/auth/biometric/challenge");
-      const options = await optionsRes.json();
-
-      // 2. Perform biometric authentication
-      const credential = await startAuthentication(options);
-
-      // 3. Verify with server
-      const verifyRes = await apiRequest("POST", "/api/auth/biometric/verify", credential);
-      return await verifyRes.json();
-    },
-    onSuccess: (user: SelectUser) => {
-      queryClient.setQueryData(["/api/user"], user);
-      toast({
-        title: "Autenticación biométrica exitosa",
-        description: "Has iniciado sesión correctamente",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error de autenticación biométrica",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
   return (
     <AuthContext.Provider
       value={{
@@ -128,7 +94,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loginMutation,
         logoutMutation,
         registerMutation,
-        biometricLoginMutation,
       }}
     >
       {children}

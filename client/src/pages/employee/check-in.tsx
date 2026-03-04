@@ -12,7 +12,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import EmployeeLayout from "@/components/layout/employee-layout";
 import { apiRequest } from "@/lib/queryClient";
-import type { SelectLocation } from "@db/schema";
+import type { SelectLocation, SelectUserSettings } from "@db/schema";
 import { LogIn, LogOut, MapPin } from "lucide-react";
 
 export default function EmployeeCheckIn() {
@@ -25,15 +25,13 @@ export default function EmployeeCheckIn() {
     queryKey: ["/api/locations"],
   });
 
-  const { data: settings } = useQuery({
+  const { data: settings } = useQuery<SelectUserSettings>({
     queryKey: ["/api/user/settings"],
   });
 
+  const today = new Date().toISOString().split('T')[0];
   const { data: attendance } = useQuery<any[]>({
-    queryKey: ["/api/attendance/history", {
-      startDate: new Date().toISOString().split('T')[0],
-      endDate: new Date().toISOString().split('T')[0],
-    }],
+    queryKey: [`/api/attendance/history?startDate=${today}&endDate=${today}`],
   });
 
   useEffect(() => {

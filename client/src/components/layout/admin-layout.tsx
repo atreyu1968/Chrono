@@ -51,7 +51,9 @@ import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import * as React from "react";
-import { FileUploader } from "@/components/ui/file-uploader";
+import type { SelectMessage, SelectUserSettings } from "@db/schema";
+import logoSolo from "@/assets/images/logo solo.png";
+import fondoImg from "@/assets/images/fondo.png";
 
 const profileSchema = z.object({
   fullName: z.string().min(1, "El nombre completo es requerido"),
@@ -73,21 +75,20 @@ const profileSchema = z.object({
   path: ["confirmPassword"],
 });
 
-interface SelectUser {
-  id: number;
-  fullName: string;
-  email: string;
-  phone: string | null;
-  avatar: string | null;
-}
-
-interface SelectMessage {
+interface MessageWithUser {
   id: number;
   content: string;
   sentAt: string;
   fromUserId: number;
   toUserId: number;
   read: boolean;
+  fromUser: {
+    id: number;
+    fullName: string;
+    email: string;
+    phone: string | null;
+    avatar: string | null;
+  };
 }
 
 const AdminLayout = ({ children }: { children: React.ReactNode }) => {
@@ -105,12 +106,10 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
     const [avatarPreview, setAvatarPreview] = React.useState<string | null>(user?.avatar || null);
 
 
-  // Get sidebar state from user settings
-  const { data: settings } = useQuery({
+  const { data: settings } = useQuery<SelectUserSettings>({
     queryKey: ["/api/user/settings"],
   });
 
-  // Update sidebar state
   const settingsMutation = useMutation({
     mutationFn: async (collapsed: boolean) => {
       return apiRequest("PATCH", "/api/user/settings", {
@@ -122,7 +121,9 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
     },
   });
 
-    const handleFileChange = (file: File) => {
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
         setAvatarFile(file);
         const reader = new FileReader();
         reader.onloadend = () => {
@@ -146,16 +147,6 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
 
   const profileMutation = useMutation({
       mutationFn: async (values: z.infer<typeof profileSchema>) => {
-          if (avatarFile) {
-              const formData = new FormData();
-              formData.append('avatar', avatarFile);
-              formData.append('data', JSON.stringify(values));
-              return apiRequest("PATCH", "/api/user/profile", formData, {
-                  headers: {
-                      'Content-Type': 'multipart/form-data',
-                  },
-              });
-          }
           return apiRequest("PATCH", "/api/user/profile", values);
       },
     onSuccess: () => {
@@ -174,19 +165,17 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
     },
   });
 
-  // Update messages query to include fromUser information
-  const { data: messages } = useQuery<(SelectMessage & { fromUser: SelectUser })[]>({
+  const { data: messages } = useQuery<MessageWithUser[]>({
     queryKey: ["/api/messages"],
-    refetchInterval: 5000, // Refresh every 5 seconds
+    refetchInterval: 5000,
   });
 
-  // Calculate unread messages for each user
     const unreadCount = messages?.filter(m => 
       m.toUserId === user?.id && !m.read
     ).length || 0;
 
   const menuItems = [
-    { icon: LayoutDashboard, label: "Panel", href: "/admin" },
+    { icon: LayoutDashboard, label: "Panel", href: "/admin/dashboard" },
     { icon: MapPin, label: "Ubicaciones", href: "/admin/locations" },
     { icon: Users, label: "Usuarios", href: "/admin/users" },
     { icon: Building2, label: "Departamentos", href: "/admin/departments" },
@@ -204,7 +193,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
     const MenuContent = () => (
         <div className="space-y-2">
             {menuItems.map(({ icon: Icon, label, href, badge }) => {
-                const isActive = location === href;
+                const isActive = location === href || (href === "/admin/dashboard" && location === "/admin");
                 return (
                     <Link key={href} href={href}>
                         <Button
@@ -244,7 +233,6 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Navbar */}
       <nav className="fixed top-0 left-0 right-0 h-16 bg-[#0F203E] text-white shadow-md z-50">
         <div className="container h-full mx-auto px-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -257,7 +245,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
               <SheetContent side="left" className="w-64">
                 <div className="mt-8">
                   <div className="flex items-center gap-2 mb-6">
-                    <img src="/src/assets/images/logo solo.png" alt="Logo" className="h-8" />
+                    <img src={logoSolo} alt="Logo" className="h-8" />
                     <span className="text-xl font-bold">Chrono</span>
                     <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(false)} className="ml-auto">
                       <X className="h-5 w-5" />
@@ -268,19 +256,18 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
               </SheetContent>
             </Sheet>
             <div className="hidden lg:flex items-center gap-2">
-              <img src="/src/assets/images/logo solo.png" alt="Logo" className="h-8" />
+              <img src={logoSolo} alt="Logo" className="h-8" />
               <span className="text-xl font-bold">Chrono</span>
             </div>
             <h1 className="text-xl font-bold text-white">Panel de Administración</h1>
           </div>
 
-          {/* User Profile */}
           <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="flex items-center gap-2 text-white hover:bg-white/10">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={user?.avatar} />
+                    <AvatarImage src={user?.avatar || undefined} />
                     <AvatarFallback>
                       {user?.fullName?.split(" ").map(n => n[0]).join("")}
                     </AvatarFallback>
@@ -309,15 +296,16 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
                 <form onSubmit={profileForm.handleSubmit((values) => profileMutation.mutate(values))} className="space-y-4">
                       <div className="flex flex-col items-center mb-6">
                         <Avatar className="h-24 w-24">
-                            <AvatarImage src={avatarPreview || user?.avatar} />
+                            <AvatarImage src={avatarPreview || user?.avatar || undefined} />
                             <AvatarFallback>
                                 {user?.fullName?.split(" ").map(n => n[0]).join("")}
                             </AvatarFallback>
                         </Avatar>
-                        <FileUploader
-                            onFileSelect={handleFileChange}
+                        <Input
+                            type="file"
                             accept="image/*"
-                            className="mt-4"
+                            onChange={handleFileChange}
+                            className="mt-4 w-auto"
                         />
                     </div>
                   <FormField
@@ -413,9 +401,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
         </div>
       </nav>
 
-      {/* Sidebar and Content */}
       <div className="flex pt-16">
-        {/* Sidebar */}
         <aside className={cn(
           "hidden lg:flex flex-col fixed left-0 top-16 h-[calc(100vh-4rem)] bg-[#0F203E] text-white transition-all duration-300",
           settings?.sidebarCollapsed ? "w-16" : "w-64"
@@ -423,7 +409,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
           <div className="flex flex-col h-full p-4">
             <div className="space-y-2">
               {menuItems.map(({ icon: Icon, label, href }) => {
-                const isActive = location === href;
+                const isActive = location === href || (href === "/admin/dashboard" && location === "/admin");
                 return (
                   <Link key={href} href={href}>
                     <Button
@@ -468,23 +454,20 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
           </div>
         </aside>
 
-        {/* Main Content */}
         <main className={cn(
           "flex-1 p-6 transition-all duration-300 relative",
           settings?.sidebarCollapsed ? "lg:ml-16" : "lg:ml-64"
         )}>
-          {/* Background with watermark effect */}
           <div 
             className="fixed inset-0 z-0 opacity-[0.15] pointer-events-none"
             style={{ 
-              backgroundImage: 'url("/src/assets/images/fondo.png")',
+              backgroundImage: `url("${fondoImg}")`,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
               backgroundRepeat: 'no-repeat',
             }}
           />
 
-          {/* Content container */}
           <div className="container mx-auto relative z-10">
             {children}
           </div>

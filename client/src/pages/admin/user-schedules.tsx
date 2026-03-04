@@ -56,11 +56,11 @@ export default function UserSchedulesPage() {
   const { toast } = useToast();
   const [selectedUser, setSelectedUser] = useState<string>("");
 
-  const { data: users } = useQuery({
+  const { data: users } = useQuery<any[]>({
     queryKey: ["/api/users"],
   });
 
-  const { data: schedules } = useQuery({
+  const { data: schedules } = useQuery<any[]>({
     queryKey: ["/api/admin/user", selectedUser, "schedules"],
     enabled: !!selectedUser,
   });
@@ -68,7 +68,7 @@ export default function UserSchedulesPage() {
   const form = useForm<ScheduleFormValues>({
     resolver: zodResolver(scheduleSchema),
     defaultValues: {
-      schedules: schedules || weekdays.map(day => ({
+      schedules: weekdays.map(day => ({
         weekday: day.value,
         startTime: "09:00",
         endTime: "18:00",

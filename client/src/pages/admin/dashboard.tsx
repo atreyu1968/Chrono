@@ -24,16 +24,37 @@ import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { Users, Clock, MapPin } from "lucide-react";
 
+interface AttendanceStats {
+  today: number;
+  onTime: number;
+  late: number;
+  trend: { date: string; checkIns: number }[];
+}
+
+interface RecentUser {
+  id: number;
+  fullName: string;
+  email: string;
+  role: string;
+}
+
+interface RecentAttendanceRecord {
+  id: number;
+  checkInTime: string;
+  checkOutTime: string | null;
+  user: { fullName: string };
+}
+
 export default function AdminDashboard() {
-  const { data: attendanceStats } = useQuery({
+  const { data: attendanceStats } = useQuery<AttendanceStats>({
     queryKey: ["/api/attendance/stats"],
   });
 
-  const { data: recentUsers } = useQuery({
+  const { data: recentUsers } = useQuery<RecentUser[]>({
     queryKey: ["/api/users/recent"],
   });
 
-  const { data: recentAttendance } = useQuery({
+  const { data: recentAttendance } = useQuery<RecentAttendanceRecord[]>({
     queryKey: ["/api/attendance/recent"],
   });
 

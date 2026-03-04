@@ -252,7 +252,7 @@ export default function AttendanceRecordsPage() {
                             : "--:--"}
                         </TableCell>
                         <TableCell>
-                          {record.status === "present" ? (
+                          {new Date(record.checkInTime).getHours() < 9 ? (
                             <Badge className="bg-green-500 hover:bg-green-600">
                               Puntual
                             </Badge>

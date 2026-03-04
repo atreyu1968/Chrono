@@ -7,22 +7,23 @@ import { Toaster } from "@/components/ui/toaster";
 import AuthPage from "@/pages/auth-page";
 import EmployeeCheckIn from "@/pages/employee/check-in";
 import EmployeeAttendance from "@/pages/employee/attendance";
+import EmployeeMessages from "@/pages/employee/messages";
+import EmployeeSettings from "@/pages/employee/settings";
 import AdminDashboard from "@/pages/admin/dashboard";
+import AdminUsers from "@/pages/admin/users";
+import AdminLocations from "@/pages/admin/locations";
+import AdminDepartments from "@/pages/admin/departments";
+import AdminAttendanceRecords from "@/pages/admin/attendance-records";
+import AdminHolidays from "@/pages/admin/holidays";
+import AdminMessages from "@/pages/admin/messages";
+import AdminSettings from "@/pages/admin/settings";
+import AdminUserAttendance from "@/pages/admin/user-attendance";
+import AdminUserSchedules from "@/pages/admin/user-schedules";
 import { useAuth } from "@/hooks/use-auth";
 
 function Router() {
   const { user } = useAuth();
 
-  // Debug log
-  console.log('Router - User state:', { 
-    user: user ? { 
-      id: user.id, 
-      username: user.username,
-      role: user.role 
-    } : null 
-  });
-
-  // If no user is logged in, show auth page
   if (!user) {
     return (
       <Switch>
@@ -34,12 +35,19 @@ function Router() {
     );
   }
 
-  // Admin routes
   if (user.role === "admin") {
-    console.log('Router - Rendering admin routes');
     return (
       <Switch>
         <Route path="/admin/dashboard" component={AdminDashboard} />
+        <Route path="/admin/users" component={AdminUsers} />
+        <Route path="/admin/locations" component={AdminLocations} />
+        <Route path="/admin/departments" component={AdminDepartments} />
+        <Route path="/admin/attendance-records" component={AdminAttendanceRecords} />
+        <Route path="/admin/holidays" component={AdminHolidays} />
+        <Route path="/admin/messages" component={AdminMessages} />
+        <Route path="/admin/settings" component={AdminSettings} />
+        <Route path="/admin/users/:userId/attendance" component={AdminUserAttendance} />
+        <Route path="/admin/user-schedules" component={AdminUserSchedules} />
         <Route>
           <AdminDashboard />
         </Route>
@@ -47,12 +55,12 @@ function Router() {
     );
   }
 
-  // Employee routes
-  console.log('Router - Rendering employee routes');
   return (
     <Switch>
       <Route path="/check-in" component={EmployeeCheckIn} />
       <Route path="/attendance" component={EmployeeAttendance} />
+      <Route path="/messages" component={EmployeeMessages} />
+      <Route path="/settings" component={EmployeeSettings} />
       <Route>
         <EmployeeCheckIn />
       </Route>
